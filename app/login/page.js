@@ -1,71 +1,142 @@
 "use client";
-import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
-import toast, { Toaster } from 'react-hot-toast';
+import React, { useState, useEffect } from "react";
+import styled from "styled-components";
+import toast, { Toaster } from "react-hot-toast";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 const Form = () => {
     const [isAuth, setIsAuth] = useState(false);
     const [userName, setUserName] = useState("");
-    
-    // Loader States
+
     const [isLoggingIn, setIsLoggingIn] = useState(false);
     const [isSigningUp, setIsSigningUp] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-    const [signupData, setSignupData] = useState({ name: "", email: "", password: "" });
-    const [loginData, setLoginData] = useState({ email: "", password: "" });
+    const [signupData, setSignupData] = useState({
+        name: "",
+        email: "",
+        password: "",
+    });
+
+    const [loginData, setLoginData] = useState({
+        email: "",
+        password: "",
+    });
+
+    const [confirmPassword, setConfirmPassword] = useState("");
+
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+    // 🔴 Hook-based error messages
+    const [signupError, setSignupError] = useState("");
+    const [loginError, setLoginError] = useState("");
 
     useEffect(() => {
         const token = localStorage.getItem("token");
         const user = localStorage.getItem("user");
-        if (token) {
+        if (token && user) {
             setIsAuth(true);
-            if (user) {
-                try {
-                    const parsedUser = JSON.parse(user);
-                    setUserName(parsedUser.name || "User");
-                } catch (e) {
-                    setUserName("User");
-                }
+            try {
+                setUserName(JSON.parse(user)?.name || "User");
+            } catch {
+                setUserName("User");
             }
         }
     }, []);
 
+    const isEmailValid = (email) =>
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+    const validatePassword = (password) =>
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/.test(password);
+
+    /* ---------------- SIGNUP ---------------- */
     const handleSignupSubmit = async (e) => {
         e.preventDefault();
-        setIsSigningUp(true); // Start Loader
+        setSignupError("");
+
+        const { name, email, password } = signupData;
+
+        if (!name || !email || !password || !confirmPassword) {
+            setSignupError("All fields are required");
+            return;
+        }
+
+        if (!isEmailValid(email)) {
+            setSignupError("Please enter a valid email");
+            return;
+        }
+
+        if (!validatePassword(password)) {
+            setSignupError(
+                "Password must be 8+ chars, include uppercase, lowercase, number & special character"
+            );
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            setSignupError("Passwords do not match");
+            return;
+        }
+
+        setIsSigningUp(true);
+
         try {
             const res = await fetch("/api/auth/signup", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ ...signupData }),
+                body: JSON.stringify(signupData),
             });
+
             const data = await res.json();
+
             if (!res.ok) {
                 toast.error(data.message || "Signup failed");
                 return;
             }
-            toast.success("Signup successful 🎉 Please log in.");
-        } catch (error) {
+
+            toast.success("Signup successful 🎉 Please login");
+
+            setSignupData({ name: "", email: "", password: "" });
+            setConfirmPassword("");
+        } catch {
             toast.error("Server error");
         } finally {
-            setIsSigningUp(false); // Stop Loader
+            setIsSigningUp(false);
         }
     };
 
+    /* ---------------- LOGIN ---------------- */
     const handleLoginSubmit = async (e) => {
         e.preventDefault();
-        setIsLoggingIn(true); // Start Loader
+        setLoginError("");
+
+        const { email, password } = loginData;
+
+        if (!email || !password) {
+            setLoginError("Email and password are required");
+            return;
+        }
+
+        if (!isEmailValid(email)) {
+            setLoginError("Invalid email address");
+            return;
+        }
+
+        setIsLoggingIn(true);
+
         try {
             const res = await fetch("/api/auth/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(loginData),
             });
+
             const data = await res.json();
 
             if (!res.ok) {
-                toast.error(data.message || "Login failed");
+                toast.error(data.message || "Invalid credentials");
                 return;
             }
 
@@ -74,50 +145,47 @@ const Form = () => {
 
             setIsAuth(true);
             setUserName(data.user?.name || "User");
+
             toast.success("Login successful 🎉");
-            setTimeout(() => { window.location.href = "/"; }, 1000);
-        } catch (error) {
+
+            setTimeout(() => (window.location.href = "/"), 1000);
+        } catch {
             toast.error("Server error");
         } finally {
-            setIsLoggingIn(false); // Stop Loader
+            setIsLoggingIn(false);
         }
     };
 
+    /* ---------------- LOGOUT ---------------- */
     const handleLogout = () => {
-        setIsLoggingOut(true); // Start Loader
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        toast.success("Logged out successfully");
+        setIsLoggingOut(true);
+        localStorage.clear();
+        toast.success("Logged out");
 
         setTimeout(() => {
             setIsAuth(false);
-            setIsLoggingOut(false); // Stop Loader
+            setIsLoggingOut(false);
             window.location.href = "/";
         }, 1000);
     };
 
     return (
         <StyledWrapper>
-            <Toaster position="top-center" reverseOrder={false} />
+            <Toaster position="top-center" />
+
             <div className="wrapper">
                 {isAuth ? (
                     <div className="profile-card">
-                        <div className="profile-header">
-                            <div className="avatar">{userName.charAt(0).toUpperCase()}</div>
-                            <h2 className="title">Hello, {userName}!</h2>
-                        </div>
-                        <div className="profile-actions">
-                            <button className="flip-card__btn" onClick={() => toast("Opening Dashboard...")}>
-                                Dashboard
-                            </button>
-                            <button 
-                                className="flip-card__btn logout-btn" 
-                                onClick={handleLogout}
-                                disabled={isLoggingOut}
-                            >
-                                {isLoggingOut ? "Ending..." : "Logout"}
-                            </button>
-                        </div>
+                        <div className="avatar">{userName[0]}</div>
+                        <h2>Hello, {userName}!</h2>
+                        <button className="flip-card__btn">Dashboard</button>
+                        <button
+                            className="flip-card__btn logout-btn"
+                            onClick={handleLogout}
+                            disabled={isLoggingOut}
+                        >
+                            {isLoggingOut ? "Ending..." : "Logout"}
+                        </button>
                     </div>
                 ) : (
                     <div className="card-switch">
@@ -125,30 +193,144 @@ const Form = () => {
                             <input className="toggle" type="checkbox" />
                             <span className="slider" />
                             <span className="card-side" />
+
                             <div className="flip-card__inner">
+                                {/* LOGIN */}
                                 <div className="flip-card__front">
                                     <div className="title">Log in</div>
                                     <form onSubmit={handleLoginSubmit} className="flip-card__form">
-                                        <input type="email" placeholder="Email" name="email" className="flip-card__input" required
-                                            onChange={(e) => setLoginData({...loginData, email: e.target.value})} />
-                                        <input type="password" placeholder="Password" name="password" className="flip-card__input" required
-                                            onChange={(e) => setLoginData({...loginData, password: e.target.value})} />
+                                        <input
+                                            type="email"
+                                            placeholder="Email"
+                                            className="flip-card__input"
+                                            onChange={(e) => {
+                                                setLoginData({
+                                                    ...loginData,
+                                                    email: e.target.value,
+                                                });
+                                                setLoginError("");
+                                            }}
+                                        />
+                                        <div className="password-field">
+                                            <input
+                                                type={showPassword ? "text" : "password"}
+                                                placeholder="Password"
+                                                className="flip-card__input"
+                                                onChange={(e) => {
+                                                    setLoginData({
+                                                        ...loginData,
+                                                        password: e.target.value,
+                                                    });
+                                                    setLoginError("");
+                                                }}
+
+                                            />
+                                            <span
+                                                className="eye-icon"
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    setShowPassword(!showPassword);
+                                                }}
+                                            >
+                                                {showPassword ? <FaEyeSlash /> : <FaEye />}
+                                            </span>
+                                        </div>
+                                        {loginError && (
+                                            <p className="form-error">{loginError}</p>
+                                        )}
+
                                         <button className="flip-card__btn" disabled={isLoggingIn}>
-                                            {isLoggingIn ? <span className="loader">WAIT...</span> : "Let's go!"}
+                                            {isLoggingIn ? "WAIT..." : "Let's go!"}
                                         </button>
                                     </form>
                                 </div>
+
+                                {/* SIGNUP */}
                                 <div className="flip-card__back">
                                     <div className="title">Sign up</div>
                                     <form onSubmit={handleSignupSubmit} className="flip-card__form">
-                                        <input type="text" placeholder="Name" name='name' className="flip-card__input" required
-                                            onChange={(e) => setSignupData({...signupData, name: e.target.value})} />
-                                        <input type="email" placeholder="Email" name="email" className="flip-card__input" required
-                                            onChange={(e) => setSignupData({...signupData, email: e.target.value})} />
-                                        <input type="password" placeholder="Password" name="password" className="flip-card__input" required
-                                            onChange={(e) => setSignupData({...signupData, password: e.target.value})} />
-                                        <button type='submit' className="flip-card__btn" disabled={isSigningUp}>
-                                            {isSigningUp ? <span className="loader">WAIT...</span> : "Confirm!"}
+                                        <input
+                                            type="text"
+                                            placeholder="Name"
+                                            className="flip-card__input"
+                                            onChange={(e) => {
+                                                setSignupData({
+                                                    ...signupData,
+                                                    name: e.target.value,
+                                                });
+                                                setSignupError("");
+                                            }}
+                                        />
+                                        <input
+                                            type="email"
+                                            placeholder="Email"
+                                            className="flip-card__input"
+                                            onChange={(e) => {
+                                                setSignupData({
+                                                    ...signupData,
+                                                    email: e.target.value,
+                                                });
+                                                setSignupError("");
+                                            }}
+                                        />
+
+                                        <div className="password-field">
+                                            <input
+                                                type={showPassword ? "text" : "password"}
+                                                placeholder="Password"
+                                                className="flip-card__input"
+                                                onChange={(e) => {
+                                                    setSignupData({
+                                                        ...signupData,
+                                                        password: e.target.value,
+                                                    });
+                                                    setSignupError("");
+                                                }}
+                                            />
+                                            <span
+                                                className="eye-icon"
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    setShowPassword(!showPassword);
+                                                }}
+                                            >
+                                                {showPassword ? <FaEyeSlash /> : <FaEye />}
+                                            </span>
+                                        </div>
+
+                                        <div className="password-field">
+                                            <input
+                                                type={showConfirmPassword ? "text" : "password"}
+                                                placeholder="Confirm Password"
+                                                className="flip-card__input"
+                                                onChange={(e) => {
+                                                    setConfirmPassword(e.target.value);
+                                                    setSignupError("");
+                                                }}
+                                            />
+                                            <span
+                                                className="eye-icon"
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    setShowConfirmPassword(!showConfirmPassword);
+                                                }}
+                                            >
+                                                {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                                            </span>
+                                        </div>
+
+                                        {signupError && (
+                                            <p className="form-error">{signupError}</p>
+                                        )}
+
+                                        <button
+                                            className="flip-card__btn"
+                                            disabled={isSigningUp}
+                                        >
+                                            {isSigningUp ? "WAIT..." : "Confirm!"}
                                         </button>
                                     </form>
                                 </div>
@@ -159,7 +341,7 @@ const Form = () => {
             </div>
         </StyledWrapper>
     );
-}
+};
 const StyledWrapper = styled.div`
   /* (Your existing CSS remains exactly the same) */
   .wrapper {

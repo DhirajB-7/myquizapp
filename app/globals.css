@@ -59,5 +59,17 @@
   }
 }
 
+.password-field {
+  position: relative;
+}
 
-/* This is for Welcome section */
+.eye-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #fff;
+  font-size: 18px;
+}
+
