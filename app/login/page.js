@@ -253,12 +253,12 @@ const Form = () => {
 };
 
 const StyledWrapper = styled.div`
-  min-height: 100vh;
+  min-height: 90vh;
   display: flex;
   justify-content: center;
   align-items: center;
   color: white;
-
+    margin-top: -40px;
   .wrapper {
     width: 100%;
     max-width: 400px;
