@@ -1,13 +1,14 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import toast, { Toaster } from "react-hot-toast";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { Layout, Mail, Lock, User, LogOut, ArrowRight, CheckCircle } from 'lucide-react';
 
 const Form = () => {
     const [isAuth, setIsAuth] = useState(false);
     const [userName, setUserName] = useState("");
-    const [isFlipped, setIsFlipped] = useState(false); // Track card state
+    const [isFlipped, setIsFlipped] = useState(false);
 
     const [isLoggingIn, setIsLoggingIn] = useState(false);
     const [isSigningUp, setIsSigningUp] = useState(false);
@@ -23,7 +24,8 @@ const Form = () => {
     const [signupError, setSignupError] = useState("");
     const [loginError, setLoginError] = useState("");
 
-    // 🔒 Auth Check
+    const primaryColor = "#2563eb";
+
     useEffect(() => {
         const token = localStorage.getItem("token");
         const user = localStorage.getItem("user");
@@ -33,12 +35,11 @@ const Form = () => {
                 setIsAuth(true);
                 setUserName(parsedUser?.name || "User");
             } catch (e) {
-                localStorage.clear(); // Clear corrupt data
+                localStorage.clear();
             }
         }
     }, []);
 
-    // 🔄 Reset forms when switching (Security/UX improvement)
     const handleToggle = () => {
         setIsFlipped(!isFlipped);
         setSignupError("");
@@ -51,15 +52,13 @@ const Form = () => {
     const isEmailValid = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     const validatePassword = (password) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/.test(password);
 
-    /* ---------------- SIGNUP ---------------- */
     const handleSignupSubmit = async (e) => {
         e.preventDefault();
         setSignupError("");
         const { name, email, password } = signupData;
-
         if (!name || !email || !password || !confirmPassword) return setSignupError("All fields are required");
         if (!isEmailValid(email)) return setSignupError("Please enter a valid email");
-        if (!validatePassword(password)) return setSignupError("Password too weak (8+ chars, Uppercase, Number, Special)");
+        if (!validatePassword(password)) return setSignupError("Password too weak");
         if (password !== confirmPassword) return setSignupError("Passwords do not match");
 
         setIsSigningUp(true);
@@ -71,9 +70,8 @@ const Form = () => {
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || "Signup failed");
-
             toast.success("Signup successful 🎉 Please login");
-            setIsFlipped(false); // Flip back to login automatically
+            setIsFlipped(false);
         } catch (err) {
             toast.error(err.message);
         } finally {
@@ -81,15 +79,11 @@ const Form = () => {
         }
     };
 
-    /* ---------------- LOGIN ---------------- */
     const handleLoginSubmit = async (e) => {
         e.preventDefault();
         setLoginError("");
         const { email, password } = loginData;
-
         if (!email || !password) return setLoginError("All fields are required");
-        if (!isEmailValid(email)) return setLoginError("Invalid email address");
-
         setIsLoggingIn(true);
         try {
             const res = await fetch("/api/auth/login", {
@@ -99,7 +93,6 @@ const Form = () => {
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || "Invalid credentials");
-
             localStorage.setItem("token", data.token);
             localStorage.setItem("user", JSON.stringify(data.user));
             setIsAuth(true);
@@ -113,7 +106,6 @@ const Form = () => {
         }
     };
 
-    /* ---------------- LOGOUT ---------------- */
     const handleLogout = () => {
         setIsLoggingOut(true);
         localStorage.clear();
@@ -122,380 +114,332 @@ const Form = () => {
     };
 
     return (
-        <StyledWrapper>
+        <StyledWrapper $primary={primaryColor}>
             <Toaster position="top-center" reverseOrder={false} />
             <div className="wrapper">
                 {isAuth ? (
                     <div className="profile-card">
                         <div className="avatar">{userName[0]?.toUpperCase()}</div>
                         <h2>Hello, {userName}!</h2>
-                        <button className="flip-card__btn" onClick={() => window.location.href = '/dashboard'}>Dashboard</button>
-                        <button className="flip-card__btn logout-btn" onClick={handleLogout} disabled={isLoggingOut}>
-                            {isLoggingOut ? "Ending..." : "Logout"}
-                        </button>
+                        <div className="status-badge">SESSION ACTIVE</div>
+                        <div className="action-area">
+                            <button className="main-btn" onClick={() => window.location.href = '/dashboard'}>
+                                <Layout size={18} /> Dashboard
+                            </button>
+                            <button className="main-btn logout-btn" onClick={handleLogout} disabled={isLoggingOut}>
+                                <LogOut size={18} /> {isLoggingOut ? "Ending..." : "Logout"}
+                            </button>
+                        </div>
                     </div>
                 ) : (
-                    <div className="card-switch">
-                        <label className="switch">
-                            <input className="toggle" type="checkbox" checked={isFlipped} onChange={handleToggle} />
-                            <span className="slider" />
-                            <span className="card-side" />
+                    <div className="auth-container">
+                        <div className="toggle-container">
+                            <span className={!isFlipped ? "active" : ""} onClick={() => setIsFlipped(false)}>Login</span>
+                            <div className="switch-wrapper">
+                                <label className="switch">
+                                    <input type="checkbox" checked={isFlipped} onChange={handleToggle} />
+                                    <span className="slider" />
+                                </label>
+                            </div>
+                            <span className={isFlipped ? "active" : ""} onClick={() => setIsFlipped(true)}>Sign Up</span>
+                        </div>
 
-                            <div className={`flip-card__inner ${isFlipped ? 'is-flipped' : ''}`}>
-                                {/* LOGIN */}
-                                <div className="flip-card__front">
-                                    <div className="title">Log in</div>
-                                    <form onSubmit={handleLoginSubmit} className="flip-card__form">
+                        <div className={`flip-card__inner ${isFlipped ? 'is-flipped' : ''}`}>
+                            {/* LOGIN FRONT */}
+                            <div className="flip-card__front">
+                                <div className="form-header">
+                                    <div className="title">Welcome Back</div>
+                                    <p className="subtitle">Enter your credentials to access your account</p>
+                                </div>
+                                <form onSubmit={handleLoginSubmit} className="form-content">
+                                    <div className="input-group">
+                                        <label><Mail size={14} /> Email</label>
                                         <input
                                             type="email"
-                                            autoComplete="email"
-                                            placeholder="Email"
-                                            className="flip-card__input"
+                                            placeholder="your@email.com"
                                             value={loginData.email}
                                             onChange={(e) => { setLoginData({ ...loginData, email: e.target.value }); setLoginError(""); }}
                                         />
-                                        <div className="password-field">
+                                    </div>
+                                    <div className="input-group">
+                                        <label><Lock size={14} /> Password</label>
+                                        <div className="password-wrapper">
                                             <input
                                                 type={showPassword ? "text" : "password"}
-                                                autoComplete="current-password"
-                                                placeholder="Password"
-                                                className="flip-card__input"
+                                                placeholder="••••••••"
                                                 value={loginData.password}
                                                 onChange={(e) => { setLoginData({ ...loginData, password: e.target.value }); setLoginError(""); }}
                                             />
-                                            <button type="button" className="eye-icon" onClick={(e) => {
-                                                e.preventDefault();
-                                                e.stopPropagation(); // 🔑 prevent flipping
-                                                setShowPassword(!showPassword);
-                                            }}>
+                                            <button type="button" className="eye-btn" onClick={() => setShowPassword(!showPassword)}>
                                                 {showPassword ? <FaEyeSlash /> : <FaEye />}
                                             </button>
                                         </div>
-                                        {loginError && <p className="form-error">{loginError}</p>}
-                                        <button className="flip-card__btn" disabled={isLoggingIn}>
-                                            {isLoggingIn ? "WAIT..." : "Let's go!"}
-                                        </button>
-                                    </form>
+                                    </div>
+                                    <div className="form-footer">
+                                        <span className="forgot-pwd">Forgot password?</span>
+                                    </div>
+                                    {loginError && <p className="error-text">{loginError}</p>}
+                                    <button className="main-btn" disabled={isLoggingIn}>
+                                        {isLoggingIn ? "Logging in..." : "Login"} <ArrowRight size={18} />
+                                    </button>
+                                </form>
+                                <div className="decorative-dots">
+                                    <span></span><span></span><span></span>
                                 </div>
+                            </div>
 
-                                {/* SIGNUP */}
-                                <div className="flip-card__back">
-                                    <div className="title">Sign up</div>
-                                    <form onSubmit={handleSignupSubmit} className="flip-card__form">
+                            {/* SIGNUP BACK */}
+                            <div className="flip-card__back">
+                                <div className="title">Create Account</div>
+                                <form onSubmit={handleSignupSubmit} className="form-content">
+                                    <div className="input-group">
+                                        <label><User size={14} /> Full Name</label>
                                         <input
                                             type="text"
-                                            autoComplete="name"
-                                            placeholder="Name"
-                                            className="flip-card__input"
+                                            placeholder="John Doe"
                                             value={signupData.name}
                                             onChange={(e) => { setSignupData({ ...signupData, name: e.target.value }); setSignupError(""); }}
                                         />
+                                    </div>
+                                    <div className="input-group">
+                                        <label><Mail size={14} /> Email Address</label>
                                         <input
                                             type="email"
-                                            autoComplete="email"
-                                            placeholder="Email"
-                                            className="flip-card__input"
+                                            placeholder="hello@world.com"
                                             value={signupData.email}
                                             onChange={(e) => { setSignupData({ ...signupData, email: e.target.value }); setSignupError(""); }}
                                         />
-                                        <div className="password-field">
+                                    </div>
+                                    <div className="input-group">
+                                        <label><Lock size={14} /> Password</label>
+                                        <div className="password-wrapper">
                                             <input
                                                 type={showPassword ? "text" : "password"}
-                                                autoComplete="new-password"
-                                                placeholder="Password"
-                                                className="flip-card__input"
+                                                placeholder="8+ characters"
                                                 value={signupData.password}
                                                 onChange={(e) => { setSignupData({ ...signupData, password: e.target.value }); setSignupError(""); }}
                                             />
-                                            <button type="button" className="eye-icon" onClick={(e) => {
-                                                e.preventDefault();
-                                                e.stopPropagation(); // 🔑 prevent flipping
-                                                setShowPassword(!showPassword);
-                                            }}>
+                                            <button type="button" className="eye-btn" onClick={() => setShowPassword(!showPassword)}>
                                                 {showPassword ? <FaEyeSlash /> : <FaEye />}
                                             </button>
                                         </div>
-                                        <div className="password-field">
+                                    </div>
+                                    <div className="input-group">
+                                        <label><CheckCircle size={14} /> Confirm Password</label>
+                                        <div className="password-wrapper">
                                             <input
                                                 type={showConfirmPassword ? "text" : "password"}
-                                                autoComplete="new-password"
-                                                placeholder="Confirm Password"
-                                                className="flip-card__input"
+                                                placeholder="Re-type password"
                                                 value={confirmPassword}
                                                 onChange={(e) => { setConfirmPassword(e.target.value); setSignupError(""); }}
                                             />
-                                            <button type="button" className="eye-icon" onClick={(e) => {
-                                                e.preventDefault();
-                                                e.stopPropagation(); 
-                                                setShowConfirmPassword(!showConfirmPassword);
-                                            }}>
+                                            <button type="button" className="eye-btn" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
                                                 {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
                                             </button>
                                         </div>
-                                        {signupError && <p className="form-error">{signupError}</p>}
-                                        <button className="flip-card__btn" disabled={isSigningUp}>
-                                            {isSigningUp ? "WAIT..." : "Confirm!"}
-                                        </button>
-                                    </form>
-                                </div>
+                                    </div>
+                                    {signupError && <p className="error-text">{signupError}</p>}
+                                    <button className="main-btn" disabled={isSigningUp}>
+                                        {isSigningUp ? "Creating..." : "Sign Up"} <CheckCircle size={18} />
+                                    </button>
+                                </form>
                             </div>
-                        </label>
+                        </div>
                     </div>
                 )}
             </div>
         </StyledWrapper>
     );
 };
+
 const StyledWrapper = styled.div`
-  /* (Your existing CSS remains exactly the same) */
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+
   .wrapper {
-    --input-focus: #2d8cf0;
-    --font-color: #fefefe;
-    --font-color-sub: #7e7e7e;
-    --main-color: #fefefe;
-    --logout-color: #ff4b4b;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: calc(100vh - 64px);
-    margin-top: -64px;
+    width: 100%;
+    max-width: 400px;
+    padding: 20px;
   }
 
+  /* --- Profile/Logout Card --- */
   .profile-card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 20px;
-    width: 300px;
-    padding: 30px 20px;
-    border-radius: 5px;
-    border: 2px solid var(--main-color);
-    box-shadow: 4px 4px var(--main-color);
-  }
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    padding: 40px;
+    text-align: center;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.3);
 
-  .profile-header {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 10px;
-  }
-
-  .avatar {
-      width: 60px;
-      height: 60px;
-      background: var(--input-focus);
-      border: 2px solid var(--main-color);
-      box-shadow: 4px 4px var(--main-color);
+    h2 { color: ${props => props.$primary}; margin: 15px 0; }
+    
+    .avatar {
+      width: 80px; height: 80px;
+      background: ${props => props.$primary};
       border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-      font-weight: bold;
-      color: var(--font-color);
+      margin: 0 auto;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2rem; font-weight: bold;
+      box-shadow: 0 0 20px ${props => props.$primary}66;
+    }
+
+    .status-badge {
+      background: rgba(46, 204, 113, 0.1); color: #2ecc71;
+      padding: 6px 15px; border-radius: 20px; display: inline-block;
+      font-size: 0.8rem; font-weight: bold; border: 1px solid rgba(46, 204, 113, 0.2);
+      margin-bottom: 30px;
+    }
   }
 
-  .profile-actions {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      width: 100%;
-      align-items: center;
+  /* --- Flip Card Core --- */
+  .auth-container {
+    perspective: 1000px;
   }
 
-  .logout-btn {
-      margin-top: 0;
-      border-color: var(--logout-color);
-      box-shadow: 4px 4px var(--logout-color);
-      color: var(--logout-color);
-  }
-  
-  .logout-btn:active {
-      box-shadow: 0px 0px var(--logout-color);
-      transform: translate(3px, 3px);
+  .toggle-container {
+    display: flex; justify-content: center; align-items: center; gap: 15px;
+    margin-bottom: 30px;
+    span { font-size: 0.9rem; color: #7e7e7e; cursor: pointer; transition: 0.3s; }
+    span.active { color: ${props => props.$primary}; font-weight: bold; }
   }
 
   .switch {
-    transform: translateY(-200px);
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    gap: 30px;
-    width: 50px;
-    height: 20px;
-  }
-
-  .card-side::before {
-    position: absolute;
-    content: 'Log in';
-    left: -70px;
-    top: 0;
-    width: 100px;
-    text-decoration: underline;
-    color: var(--font-color);
-    font-weight: 600;
-  }
-
-  .card-side::after {
-    position: absolute;
-    content: 'Sign up';
-    left: 70px;
-    top: 0;
-    width: 100px;
-    text-decoration: none;
-    color: var(--font-color);
-    font-weight: 600;
-  }
-
-  .toggle {
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-
-  .slider {
-    box-sizing: border-box;
-    border-radius: 5px;
-    border: 2px solid var(--main-color);
-    box-shadow: 4px 4px var(--main-color);
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: var(--bg-color);
-    transition: 0.3s;
-  }
-
-  .slider:before {
-    box-sizing: border-box;
-    position: absolute;
-    content: "";
-    height: 20px;
-    width: 20px;
-    border: 2px solid var(--main-color);
-    border-radius: 5px;
-    left: -2px;
-    bottom: 2px;
-    background-color: var(--bg-color);
-    box-shadow: 0 3px 0 var(--main-color);
-    transition: 0.3s;
-  }
-
-  .toggle:checked + .slider {
-    background-color: var(--input-focus);
-  }
-
-  .toggle:checked + .slider:before {
-    transform: translateX(30px);
-  }
-
-  .toggle:checked ~ .card-side:before {
-    text-decoration: none;
-  }
-
-  .toggle:checked ~ .card-side:after {
-    text-decoration: underline;
+    position: relative; display: inline-block; width: 50px; height: 24px;
+    input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(255,255,255,0.1); transition: .4s; border-radius: 34px;
+      &:before {
+        position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px;
+        background-color: white; transition: .4s; border-radius: 50%;
+      }
+    }
+    input:checked + .slider { background-color: ${props => props.$primary}; }
+    input:checked + .slider:before { transform: translateX(26px); }
   }
 
   .flip-card__inner {
-    width: 300px;
-    height: 350px;
-    position: relative;
-    background-color: transparent;
-    perspective: 1000px;
-    text-align: center;
-    transition: transform 0.8s;
-    transform-style: preserve-3d;
-  }
-
-  .toggle:checked ~ .flip-card__inner {
-    transform: rotateY(180deg);
-  }
-
-  .toggle:checked ~ .flip-card__front {
-    box-shadow: none;
+    position: relative; width: 100%; height: 580px;
+    transition: transform 0.8s; transform-style: preserve-3d;
+    &.is-flipped { transform: rotateY(180deg); }
   }
 
   .flip-card__front, .flip-card__back {
-    padding: 20px;
-    position: absolute;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    -webkit-backface-visibility: hidden;
+    position: absolute; width: 100%; height: 100%;
     backface-visibility: hidden;
-    background: var(--bg-color);
-    gap: 20px;
-    border-radius: 5px;
-    border: 2px solid var(--main-color);
-    box-shadow: 4px 4px var(--main-color);
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    padding: 30px;
+    display: flex; flex-direction: column;
+    justify-content: center;
   }
 
-  .flip-card__back {
-    width: 100%;
-    transform: rotateY(180deg);
-  }
+  .flip-card__back { transform: rotateY(180deg); }
 
-  .flip-card__form {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 20px;
-  }
-
-  .title {
-    margin: 20px 0 20px 0;
-    font-size: 25px;
-    font-weight: 900;
+  /* New Form Header Styling */
+  .form-header {
+    margin-bottom: 30px;
     text-align: center;
-    color: var(--main-color);
+    animation: fadeInDown 0.6s ease-out;
   }
 
-  .flip-card__input {
-    width: 250px;
-    height: 40px;
-    border-radius: 5px;
-    border: 2px solid var(--main-color);
-    background-color: var(--bg-color);
-    box-shadow: 4px 4px var(--main-color);
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--font-color);
-    padding: 5px 10px;
-    outline: none;
+  .subtitle {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: -15px;
   }
 
-  .flip-card__input::placeholder {
-    color: var(--font-color-sub);
-    opacity: 0.8;
+  .title { font-size: 1.5rem; font-weight: bold; color: ${props => props.$primary}; margin-bottom: 20px; }
+  
+  .form-content { display: flex; flex-direction: column; gap: 15px; }
+
+  .input-group {
+    display: flex; flex-direction: column; gap: 6px;
+    label { 
+      display: flex; align-items: center; gap: 6px;
+      color: ${props => props.$primary}; font-size: 0.7rem; font-weight: bold; text-transform: uppercase;
+    }
+    input {
+      width: 100%; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px; padding: 12px 15px; color: white; outline: none; transition: 0.3s;
+      &:focus { border-color: ${props => props.$primary}; background: rgba(0,0,0,0.4); }
+    }
   }
 
-  .flip-card__input:focus {
-    border: 2px solid var(--input-focus);
+  .password-wrapper {
+    position: relative;
+    .eye-btn {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; color: #7e7e7e; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
   }
 
-  .flip-card__btn:active, .button-confirm:active {
-    box-shadow: 0px 0px var(--main-color);
-    transform: translate(3px, 3px);
+  .form-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: -5px;
   }
 
-  .flip-card__btn {
-    margin: 20px 0 20px 0;
-    width: 120px;
-    height: 40px;
-    border-radius: 5px;
-    border: 2px solid var(--main-color);
-    background-color: var(--bg-color);
-    box-shadow: 4px 4px var(--main-color);
-    font-size: 17px;
-    font-weight: 600;
-    color: var(--font-color);
+  .forgot-pwd {
+    font-size: 0.75rem;
+    color: ${props => props.$primary};
     cursor: pointer;
+    opacity: 0.8;
+    &:hover { text-decoration: underline; opacity: 1; }
+  }
+
+  .error-text { color: #ff4b4b; font-size: 0.8rem; text-align: center; }
+
+  .main-btn {
+    width: 100%; padding: 14px; background: ${props => props.$primary};
+    border: none; color: white; border-radius: 12px; font-weight: bold;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    cursor: pointer; transition: 0.3s;
+    box-shadow: 0 10px 20px ${props => props.$primary}4d;
+    margin-top: 10px;
+    &:hover { transform: translateY(-2px); opacity: 0.9; }
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
+  }
+
+  /* Decorative Dots Section */
+  .decorative-dots {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 40px;
+    span {
+      width: 6px; height: 6px;
+      background: ${props => props.$primary};
+      border-radius: 50%;
+      opacity: 0.3;
+      animation: pulse 1.5s infinite ease-in-out;
+      &:nth-child(2) { animation-delay: 0.2s; }
+      &:nth-child(3) { animation-delay: 0.4s; }
+    }
+  }
+
+  /* Animations */
+  @keyframes fadeInDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 0.3; }
+    50% { transform: scale(1.2); opacity: 0.6; }
+  }
+
+  .logout-btn {
+    background: rgba(255, 75, 75, 0.1); color: #ff4b4b; 
+    border: 1px solid rgba(255, 75, 75, 0.2); box-shadow: none;
+    &:hover { background: rgba(255, 75, 75, 0.2); }
   }
 `;
 
