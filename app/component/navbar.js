@@ -10,23 +10,34 @@ import { useRouter } from 'next/navigation';
 const Navbar = () => {
   const [isAuth, setIsAuth] = useState(false);
   const router = useRouter();
-  // Check login status on mount
+
+  // Check login status on mount and keep it updated
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      setIsAuth(true);
-    }
+    const checkToken = () => {
+      const token = localStorage.getItem("token");
+      setIsAuth(!!token); // Sets true if token exists, false if null
+    };
+
+    checkToken();
+
+    // Listen for storage changes to handle login/logout across tabs
+    window.addEventListener("storage", checkToken);
+    
+    // Check every second to catch same-page login/logout without refresh
+    const interval = setInterval(checkToken, 1000);
+
+    return () => {
+      window.removeEventListener("storage", checkToken);
+      clearInterval(interval);
+    };
   }, []);
 
-  // Handle Navigation to Profile (Login Page)
   const handleProfileClick = () => {
-    // Redirects to /login where the 'Form' component handles the Dashboard/Logout view
-   // window.location.href = "/login";
     router.push("/login");
   };
 
   return (
-    <nav className="sticky top-0 z-50 mb-7 backdrop-blur-md shadow-md ">
+    <nav className="sticky top-0 z-50 mb-7 backdrop-blur-md shadow-md">
       <div className="mx-auto px-4">
 
         {/* DESKTOP GRID */}
@@ -37,7 +48,6 @@ const Navbar = () => {
 
           {/* RIGHT: Home + Auth Buttons */}
           <div className="flex justify-end items-center gap-6">
-            {/* Home Button (Always Visible) */}
             <Link
               href="/"
               className="text-gray-600 font-semibold hover:text-blue-600 transition-colors duration-200"
@@ -46,15 +56,15 @@ const Navbar = () => {
             </Link>
 
             {isAuth ? (
-              // --- LOGGED IN VIEW: Profile Button ---
+              /* --- LOGGED IN VIEW: Profile Button --- */
               <button
                 onClick={handleProfileClick}
-                className="px-5 py-2  text-white font-bold rounded-lg  transition-all shadow-md hover:shadow-lg"
+                className="transition-all transform hover:scale-105"
               >
                 <Profileee />
               </button>
             ) : (
-              // --- LOGGED OUT VIEW: Login Modal Button ---
+              /* --- LOGGED OUT VIEW: Login Button --- */
               <Button />
             )}
           </div>
@@ -64,9 +74,8 @@ const Navbar = () => {
         <div className="flex md:hidden h-16 items-center justify-between">
 
           {/* LEFT: Logo */}
-          <div className="flex   items-center gap-3 group cursor-pointer" onClick={() => window.location.href = '/'}>
-
-            <svg width="260" height="80" viewBox="0 0 260 80" xmlns="http://www.w3.org/2000/svg">
+          <div className="flex items-center gap-3 group cursor-pointer" onClick={() => router.push("/")}>
+            <svg width="200" height="60" viewBox="0 0 260 80" xmlns="http://www.w3.org/2000/svg">
               <defs>
                 <linearGradient id="grad_quiz" x1="0%" y1="0%" x2="100%" y2="0%">
                   <stop offset="0%" stopColor="#2563eb" />
@@ -74,7 +83,6 @@ const Navbar = () => {
                   <stop offset="100%" stopColor="#e0f2fe" />
                 </linearGradient>
               </defs>
-
               <text
                 x="0"
                 y="55"
@@ -86,22 +94,20 @@ const Navbar = () => {
                 Quizक्रिडा
               </text>
             </svg>
-
           </div>
 
           {/* RIGHT: Actions */}
           <div className="flex items-center gap-3">
-
-
             {isAuth ? (
-              // --- Mobile Profile Button ---
+              /* --- Mobile Profile Button --- */
               <button
                 onClick={handleProfileClick}
-                className="px-3 py-1.5  text-white font-bold rounded-md text-xs"
+                className="transition-all"
               >
                 <Profileee />
               </button>
             ) : (
+              /* --- Mobile Login Button --- */
               <Button />
             )}
           </div>
