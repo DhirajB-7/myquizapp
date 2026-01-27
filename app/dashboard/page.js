@@ -139,7 +139,7 @@ const ResultModal = ({ quizId, onClose }) => {
   );
 };
 
-/* --- EDIT COMPONENT (UPDATED WITH VALIDATION & EMPTY STATE) --- */
+/* --- EDIT COMPONENT --- */
 const EditQuizModule = ({ quizId, onBack, primaryColor }) => {
   const [quizInfo, setQuizInfo] = useState(null);
   const [questions, setQuestions] = useState([]);
@@ -188,6 +188,8 @@ const EditQuizModule = ({ quizId, onBack, primaryColor }) => {
     setQuestions([...questions, {
       qno: nextQNo, question: "", opt1: "", opt2: "", opt3: "", opt4: "", correctOpt: "opt1", quizId: parseInt(quizId), isLocalOnly: true 
     }]);
+    // Scroll to new question on mobile
+    setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100);
   };
 
   const handleDeleteQuestion = (qno, index) => {
@@ -199,12 +201,8 @@ const EditQuizModule = ({ quizId, onBack, primaryColor }) => {
   };
 
   const handleSave = async () => {
-    // NEW VALIDATION LOGIC
     if (!quizInfo?.quizTitle?.trim() || !quizInfo?.duration) {
-      toast.error("Quiz Title and Duration cannot be blank!", {
-        icon: '⚠️',
-        style: { borderRadius: '12px', background: '#1e293b', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' }
-      });
+      toast.error("Quiz Title and Duration are required!");
       return;
     }
 
@@ -221,26 +219,30 @@ const EditQuizModule = ({ quizId, onBack, primaryColor }) => {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      if (response.ok) { toast.success("Updated Successfully!"); onBack(); }
+      if (response.ok) { 
+        toast.success("Updated Successfully!"); 
+        onBack(); 
+      }
     } finally { setSaving(false); }
   };
 
   if (loading) return <LoadingState><Loader2 className="spinner" size={40} /><p>Loading Quiz Data...</p></LoadingState>;
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ paddingBottom: '100px' }}>
       <EditHeaderSection>
         <div className="left">
           <BackButton onClick={onBack}><ChevronLeft size={20} /> Cancel</BackButton>
           <h2>Editing: {quizInfo?.quizTitle || "New Quiz"}</h2>
         </div>
-        <div className="action-btns">
+        <div className="action-btns desktop-only">
           <AddQuestionBtn onClick={addNewQuestion}><Plus size={18} /> Add Question</AddQuestionBtn>
           <SaveBtn onClick={handleSave} disabled={saving} $primary={primaryColor}>
             {saving ? <Loader2 className="spinner" size={18} /> : <Save size={18} />} Save Changes
           </SaveBtn>
         </div>
       </EditHeaderSection>
+
       <EditLayout>
         <ConfigCard>
           <h3>Quiz Settings</h3>
@@ -269,7 +271,7 @@ const EditQuizModule = ({ quizId, onBack, primaryColor }) => {
           <EmptyStateBox>
             <Inbox size={48} color="#3b82f6" />
             <h4>No Questions Found</h4>
-            <p>Your quiz is empty. Click the "Add Question" button to start creating content.</p>
+            <p>Your quiz is empty.</p>
           </EmptyStateBox>
         ) : (
           questions.map((q, idx) => (
@@ -308,6 +310,14 @@ const EditQuizModule = ({ quizId, onBack, primaryColor }) => {
           ))
         )}
       </EditLayout>
+
+      {/* MOBILE STICKY FOOTER */}
+      <MobileStickyFooter>
+        <AddQuestionBtn onClick={addNewQuestion} style={{flex: 1}}><Plus size={18} /> Add</AddQuestionBtn>
+        <SaveBtn onClick={handleSave} disabled={saving} $primary={primaryColor} style={{flex: 2}}>
+          {saving ? <Loader2 className="spinner" size={18} /> : <Save size={18} />} Save Changes
+        </SaveBtn>
+      </MobileStickyFooter>
     </motion.div>
   );
 };
@@ -440,11 +450,11 @@ const UserDashboard = () => {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             <header className="main-header">
               <div className="user-info">
-                <h1>My Dashboard</h1>
+                <h1>Admin Dashboard</h1>
                 <p>Logged in as <span className="highlight">{userEmail}</span></p>
               </div>
               <CreateBtn onClick={() => router.push("/create")} $primary={primaryColor}>
-                <Plus size={20} /> <span>New Quiz</span>
+                <Plus size={20} /> <span className="desktop-only">New Quiz</span>
               </CreateBtn>
             </header>
 
@@ -493,6 +503,23 @@ const UserDashboard = () => {
 };
 
 /* --- STYLES --- */
+const MobileStickyFooter = styled.div`
+  display: none;
+  @media (max-width: 768px) {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 15px 20px;
+    gap: 12px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    backdrop-filter: blur(10px);
+    z-index: 100;
+    box-shadow: 0 -10px 25px rgba(0,0,0,0.5);
+  }
+`;
+
 const EmptyStateBox = styled.div`
   display: flex;
   flex-direction: column;
@@ -514,25 +541,114 @@ const DownloadBtn = styled.button` background: rgba(37, 99, 235, 0.1); border: n
 const ResultIconButton = styled.button` background: rgba(255,255,255,0.05); border: none; color: #f59e0b; padding: 8px; border-radius: 8px; cursor: pointer; &:hover { background: #f59e0b; color: white; } `;
 const QRIconButton = styled.button` background: rgba(255,255,255,0.05); border: none; color: #3b82f6; padding: 8px; border-radius: 8px; cursor: pointer; &:hover { background: #3b82f6; color: white; } `;
 const WhatsAppBtn = styled.button` width: 100%; background: #25d366; color: white; border: none; padding: 12px; border-radius: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; transition: transform 0.2s; &:hover { transform: scale(1.02); background: #22c35e; } `;
-const DashboardWrapper = styled.div` max-width: 1200px; margin: 0 auto; padding: 40px 20px; color: #f8fafc; .main-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; h1 { font-size: 2.2rem; font-weight: 800; } .highlight { color: #3b82f6; } } `;
+
+const DashboardWrapper = styled.div` 
+  max-width: 1200px; 
+  margin: 0 auto; 
+  padding: 40px 20px; 
+  color: #f8fafc; 
+
+  .main-header { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    margin-bottom: 40px; 
+    h1 { font-size: 1.8rem; font-weight: 800; } 
+    .highlight { color: #3b82f6; } 
+
+    @media (max-width: 600px) {
+      h1 { font-size: 1.4rem; }
+    }
+  }
+
+  .desktop-only {
+    @media (max-width: 768px) { display: none !important; }
+  }
+`;
+
 const QuizGrid = styled.div` display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; `;
 const StyledCard = styled(motion.div)` background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 20px; padding: 20px; backdrop-filter: blur(10px); .card-header { display: flex; justify-content: space-between; margin-bottom: 15px; } .icon-bg { padding: 8px; background: rgba(37, 99, 235, 0.1); border-radius: 10px; } .quiz-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 15px; color: white; } `;
-const QuestionEditBox = styled.div` background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 18px; margin-bottom: 15px; .q-top { display: flex; justify-content: space-between; margin-bottom: 12px; color: #3b82f6; font-weight: 700; } .q-input { width: 100%; background: transparent; border: 1px solid #334155; padding: 12px; border-radius: 10px; color: white; margin-bottom: 12px; font-family: inherit; &:focus { border-color: #3b82f6; outline: none; } } .options-grid-edit { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; .opt-field { display: flex; align-items: center; gap: 10px; border: 1px solid #334155; padding: 10px; border-radius: 10px; input { background: none; border: none; color: white; width: 100%; outline: none; } } } `;
+
+const QuestionEditBox = styled.div` 
+  background: rgba(255, 255, 255, 0.03); 
+  border: 1px solid rgba(255, 255, 255, 0.1); 
+  padding: 20px; 
+  border-radius: 18px; 
+  margin-bottom: 15px; 
+
+  .q-top { display: flex; justify-content: space-between; margin-bottom: 12px; color: #3b82f6; font-weight: 700; } 
+  .q-input { 
+    width: 100%; background: transparent; border: 1px solid #334155; padding: 12px; 
+    border-radius: 10px; color: white; margin-bottom: 12px; font-family: inherit; font-size: 1rem;
+    &:focus { border-color: #3b82f6; outline: none; } 
+  } 
+
+  .options-grid-edit { 
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px; 
+    @media (max-width: 600px) { grid-template-columns: 1fr; }
+    .opt-field { 
+      display: flex; align-items: center; gap: 10px; border: 1px solid #334155; 
+      padding: 10px; border-radius: 10px; 
+      input { background: none; border: none; color: white; width: 100%; outline: none; } 
+    } 
+  } 
+`;
+
 const CreateBtn = styled(motion.button)` display: flex; align-items: center; gap: 10px; background: ${p => p.$primary}; padding: 12px 24px; border-radius: 12px; color: white; border: none; font-weight: 700; cursor: pointer; `;
-const SaveBtn = styled.button` background: ${p => p.$primary}; color: white; padding: 12px 20px; border-radius: 12px; border: none; font-weight: 700; display: flex; align-items: center; gap: 8px; cursor: pointer; &:disabled { opacity: 0.6; } `;
-const AddQuestionBtn = styled.button` background: none; border: 1px solid #3b82f6; color: #3b82f6; padding: 12px 20px; border-radius: 12px; font-weight: 700; display: flex; align-items: center; gap: 8px; cursor: pointer; `;
-const BackButton = styled.button` background: none; border: none; color: #3b82f6; cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: 600; margin-bottom: 20px; `;
+
+const SaveBtn = styled.button` 
+  background: ${p => p.$primary}; color: white; padding: 12px 20px; border-radius: 12px; 
+  border: none; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; 
+  &:disabled { opacity: 0.6; } 
+`;
+
+const AddQuestionBtn = styled.button` 
+  background: none; border: 1px solid #3b82f6; color: #3b82f6; padding: 12px 20px; 
+  border-radius: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; 
+`;
+
+const BackButton = styled.button` background: none; border: none; color: #3b82f6; cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: 600; margin-bottom: 10px; `;
 const DeleteSmallBtn = styled.button` background: none; border: none; color: #ef4444; cursor: pointer; `;
-const StatusBadge = styled.button` padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; border: none; font-weight: 700; background: ${p => p.$isActive ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)'}; color: ${p => p.$isActive ? '#10b981' : '#f87171'}; cursor: pointer; display: flex; align-items: center; gap: 4px; &:disabled { opacity: 0.8; cursor: not-allowed; } .spinner { animation: spin 1s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } } `;
+
+const StatusBadge = styled.button` 
+  padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; border: none; font-weight: 700; 
+  background: ${p => p.$isActive ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)'}; 
+  color: ${p => p.$isActive ? '#10b981' : '#f87171'}; cursor: pointer; 
+  display: flex; align-items: center; gap: 4px; 
+  &:disabled { opacity: 0.8; cursor: not-allowed; } 
+  .spinner { animation: spin 1s linear infinite; } 
+  @keyframes spin { to { transform: rotate(360deg); } } 
+`;
+
 const EditIconButton = styled.button` background: rgba(255,255,255,0.05); border: none; color: white; padding: 8px; border-radius: 8px; cursor: pointer; &:hover { background: #3b82f6; } `;
 const DeleteIconButton = styled.button` background: rgba(255,255,255,0.05); border: none; color: #f87171; padding: 8px; border-radius: 8px; cursor: pointer; &:hover { background: #ef4444; color: white; } `;
 const LoadingState = styled.div` display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 50vh; .spinner { animation: spin 1s linear infinite; } p { margin-top: 15px; color: #94a3b8; } `;
 const DataGrid = styled.div` display: flex; gap: 10px; margin-bottom: 15px; .data-item { font-size: 0.75rem; color: #94a3b8; background: rgba(255,255,255,0.05); padding: 4px 8px; border-radius: 6px; display: flex; align-items: center; gap: 4px; } `;
 const SeeQuestionBtn = styled.button` width: 100%; background: rgba(255,255,255,0.05); color: #94a3b8; padding: 10px; border-radius: 10px; border: none; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; &:hover { background: ${p => p.$primary}; color: white; } `;
+
 const EditLayout = styled.div` max-width: 800px; margin: 0 auto; `;
-const ConfigCard = styled.div` background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 20px; margin-bottom: 20px; .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; .field { display: flex; flex-direction: column; label { font-size: 0.85rem; color: #94a3b8; margin-bottom: 8px; } input { background: transparent; border: 1px solid #334155; padding: 12px; border-radius: 10px; color: white; &:focus { border-color: #3b82f6; outline: none; } } } } `;
+
+const ConfigCard = styled.div` 
+  background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); 
+  padding: 20px; border-radius: 20px; margin-bottom: 20px; 
+  .form-grid { 
+    display: grid; grid-template-columns: 1fr 1fr; gap: 15px; 
+    @media (max-width: 600px) { grid-template-columns: 1fr; }
+    .field { 
+      display: flex; flex-direction: column; 
+      label { font-size: 0.85rem; color: #94a3b8; margin-bottom: 8px; } 
+      input { background: transparent; border: 1px solid #334155; padding: 12px; border-radius: 10px; color: white; &:focus { border-color: #3b82f6; outline: none; } } 
+    } 
+  } 
+`;
+
 const QuestionsContainer = styled.div` max-width: 800px; margin: 0 auto; `;
-const FullQuestionItem = styled.div` background: rgba(30, 41, 59, 0.5); padding: 20px; border-radius: 15px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.05); .q-label { color: #3b82f6; font-size: 0.8rem; font-weight: 700; margin-bottom: 10px; } .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; span { padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; font-size: 0.9rem; } .correct { border: 1px solid #10b981; color: #10b981; } } `;
-const EditHeaderSection = styled.div` display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; .action-btns { display: flex; gap: 10px; } `;
+const FullQuestionItem = styled.div` background: rgba(30, 41, 59, 0.5); padding: 20px; border-radius: 15px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.05); .q-label { color: #3b82f6; font-size: 0.8rem; font-weight: 700; margin-bottom: 10px; } .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; @media (max-width: 500px) { grid-template-columns: 1fr; } span { padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; font-size: 0.9rem; } .correct { border: 1px solid #10b981; color: #10b981; } } `;
+
+const EditHeaderSection = styled.div` 
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; 
+  .action-btns { display: flex; gap: 10px; } 
+  h2 { @media (max-width: 600px) { font-size: 1.2rem; } }
+`;
 
 export default UserDashboard;
