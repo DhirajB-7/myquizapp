@@ -3,8 +3,9 @@ import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import toast, { Toaster } from "react-hot-toast";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
-import { Layout, Mail, Lock, User, LogOut, ArrowRight, CheckCircle } from 'lucide-react';
+import { Layout, Mail, Lock, User, LogOut, ArrowRight, CheckCircle, Loader2 } from 'lucide-react'; // Added Loader2
 import { useRouter } from 'next/navigation';
+
 const Form = () => {
     const router = useRouter();
     const [isAuth, setIsAuth] = useState(false);
@@ -14,6 +15,7 @@ const Form = () => {
     const [isLoggingIn, setIsLoggingIn] = useState(false);
     const [isSigningUp, setIsSigningUp] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
+    const [isEnteringDashboard, setIsEnteringDashboard] = useState(false); // New state
 
     const [signupData, setSignupData] = useState({ name: "", email: "", password: "" });
     const [loginData, setLoginData] = useState({ email: "", password: "" });
@@ -114,6 +116,12 @@ const Form = () => {
         setTimeout(() => (router.push("/")), 800);
     };
 
+    // New handler for Dashboard navigation
+    const handleDashboardClick = () => {
+        setIsEnteringDashboard(true);
+        router.push("/dashboard");
+    };
+
     return (
         <StyledWrapper $primary={primaryColor}>
             <Toaster position="top-center" reverseOrder={false} />
@@ -124,8 +132,13 @@ const Form = () => {
                         <h2>Hello, {userName}!</h2>
                         <div className="status-badge">SESSION ACTIVE</div>
                         <div className="action-area">
-                            <button className="main-btn" onClick={() =>router.push("/dashboard")}>
-                                <Layout size={18} /> Dashboard
+                            <button className="main-btn" onClick={handleDashboardClick} disabled={isEnteringDashboard}>
+                                {isEnteringDashboard ? (
+                                    <Loader2 size={18} className="spinner-icon" />
+                                ) : (
+                                    <Layout size={18} />
+                                )} 
+                                {isEnteringDashboard ? "Loading..." : "Dashboard"}
                             </button>
                             <button className="main-btn logout-btn" onClick={handleLogout} disabled={isLoggingOut}>
                                 <LogOut size={18} /> {isLoggingOut ? "Ending..." : "Logout"}
@@ -259,7 +272,17 @@ const StyledWrapper = styled.div`
   justify-content: center;
   align-items: center;
   color: white;
-    margin-top: -40px;
+  margin-top: -40px;
+
+  .spinner-icon {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
   .wrapper {
     width: 100%;
     max-width: 400px;
