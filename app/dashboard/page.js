@@ -1,4 +1,4 @@
-"use client";
+f"use client";
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -434,13 +434,32 @@ const UserDashboard = () => {
     setSwitchingStatusId(quizId);
     try {
       const response = await fetch(`https://noneditorial-professionally-serena.ngrok-free.dev/Logged/SwitchStatus/${quizId}`, {
-        method: 'GET', headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' }
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' }
       });
+  
       if (response.ok) {
-        setQuizzes(prev => prev.map(q => q.quizId === quizId ? { ...q, status: String(q.status) === "true" ? "false" : "true" } : q));
-        toast.success("Status switched");
+        // 1. EXTRACT THE INTEGER FROM THE BACKEND RESPONSE
+        const minutes = await response.json(); 
+  
+        // 2. Update the UI state (Toggle the active/inactive badge)
+        setQuizzes(prev => prev.map(q => 
+          q.quizId === quizId 
+            ? { ...q, status: String(q.status) === "true" ? "false" : "true" } 
+            : q
+        ));
+  
+        if (minutes === 0) {
+           toast.success("Quiz Deactivated!");
+        } else if (minutes > 0) {
+           toast.success(`Quiz Activated for ${minutes} Minutes`);
+        }
       }
-    } finally { setSwitchingStatusId(null); }
+    } catch (err) {
+      toast.error("Network error");
+    } finally { 
+      setSwitchingStatusId(null); 
+    }
   };
 
   const handleDeleteQuiz = async (quizId) => {
