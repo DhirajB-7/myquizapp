@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import toast, { Toaster } from "react-hot-toast";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
-import { Layout, Mail, Lock, User, LogOut, ArrowRight, CheckCircle, Loader2, ShieldCheck } from 'lucide-react';
+import { Layout, Mail, Lock, User, LogOut, ArrowRight, CheckCircle, Loader2 } from 'lucide-react'; // Added Loader2
 import { useRouter } from 'next/navigation';
 
 const Form = () => {
@@ -15,12 +15,7 @@ const Form = () => {
     const [isLoggingIn, setIsLoggingIn] = useState(false);
     const [isSigningUp, setIsSigningUp] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
-    const [isEnteringDashboard, setIsEnteringDashboard] = useState(false);
-
-    // OTP & Step Logic
-    const [step, setStep] = useState(1); // 1: Signup Form, 2: OTP Verification
-    const [otpInput, setOtpInput] = useState("");
-    const [timer, setTimer] = useState(0);
+    const [isEnteringDashboard, setIsEnteringDashboard] = useState(false); // New state
 
     const [signupData, setSignupData] = useState({ name: "", email: "", password: "" });
     const [loginData, setLoginData] = useState({ email: "", password: "" });
@@ -34,7 +29,6 @@ const Form = () => {
 
     const primaryColor = "#2563eb";
 
-    // Auth Check
     useEffect(() => {
         const token = localStorage.getItem("token");
         const user = localStorage.getItem("user");
@@ -49,17 +43,8 @@ const Form = () => {
         }
     }, []);
 
-    // OTP Timer Effect
-    useEffect(() => {
-        if (timer > 0) {
-            const interval = setInterval(() => setTimer(prev => prev - 1), 1000);
-            return () => clearInterval(interval);
-        }
-    }, [timer]);
-
     const handleToggle = () => {
         setIsFlipped(!isFlipped);
-        setStep(1); // Reset to signup step if they flip
         setSignupError("");
         setLoginError("");
         setSignupData({ name: "", email: "", password: "" });
@@ -70,7 +55,6 @@ const Form = () => {
     const isEmailValid = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     const validatePassword = (password) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/.test(password);
 
-    // STEP 1: Send OTP
     const handleSignupSubmit = async (e) => {
         e.preventDefault();
         setSignupError("");
@@ -81,57 +65,18 @@ const Form = () => {
         if (password !== confirmPassword) return setSignupError("Passwords do not match");
 
         setIsSigningUp(true);
-        const loadingToast = toast.loading("Sending verification code...");
         try {
-            const res = await fetch("/api/auth/verify", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, action: "send" }),
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || "Failed to send code");
-            
-            toast.success("Code sent to your email!", { id: loadingToast });
-            setStep(2); // Move to OTP step
-            setTimer(60);
-        } catch (err) {
-            toast.error(err.message, { id: loadingToast });
-        } finally {
-            setIsSigningUp(false);
-        }
-    };
-
-    // STEP 2: Verify OTP and Create User
-    const handleVerifyOtp = async (e) => {
-        e.preventDefault();
-        if (!otpInput) return toast.error("Please enter the code");
-
-        setIsSigningUp(true);
-        const loadingToast = toast.loading("Verifying code...");
-        try {
-            // 1. Verify OTP
-            const verifyRes = await fetch("/api/auth/verify", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email: signupData.email, action: "verify", otpInput }),
-            });
-            const verifyData = await verifyRes.json();
-            if (!verifyRes.ok) throw new Error(verifyData.message || "Invalid or expired code");
-
-            // 2. If OTP valid, create the account
-            const signupRes = await fetch("/api/auth/signup", {
+            const res = await fetch("/api/auth/signup", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(signupData),
             });
-            const signupDataRes = await signupRes.json();
-            if (!signupRes.ok) throw new Error(signupDataRes.message || "Signup failed");
-
-            toast.success("Verified! Please login 🎉", { id: loadingToast });
-            setStep(1);
-            setIsFlipped(false); // Flip back to Login
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || "Signup failed");
+            toast.success("Signup successful 🎉 Please login");
+            setIsFlipped(false);
         } catch (err) {
-            toast.error(err.message, { id: loadingToast });
+            toast.error(err.message);
         } finally {
             setIsSigningUp(false);
         }
@@ -156,7 +101,7 @@ const Form = () => {
             setIsAuth(true);
             setUserName(data.user?.name || "User");
             toast.success("Welcome back!");
-            router.push("/");
+            router.push("/");;
         } catch (err) {
             toast.error(err.message);
         } finally {
@@ -171,6 +116,7 @@ const Form = () => {
         setTimeout(() => (router.push("/")), 800);
     };
 
+    // New handler for Dashboard navigation
     const handleDashboardClick = () => {
         setIsEnteringDashboard(true);
         router.push("/dashboard");
@@ -187,7 +133,11 @@ const Form = () => {
                         <div className="status-badge">SESSION ACTIVE</div>
                         <div className="action-area">
                             <button className="main-btn" onClick={handleDashboardClick} disabled={isEnteringDashboard}>
-                                {isEnteringDashboard ? <Loader2 size={18} className="spinner-icon" /> : <Layout size={18} />} 
+                                {isEnteringDashboard ? (
+                                    <Loader2 size={18} className="spinner-icon" />
+                                ) : (
+                                    <Layout size={18} />
+                                )} 
                                 {isEnteringDashboard ? "Loading..." : "Dashboard"}
                             </button>
                             <button className="main-btn logout-btn" onClick={handleLogout} disabled={isLoggingOut}>
@@ -252,106 +202,61 @@ const Form = () => {
                                 </div>
                             </div>
 
-                            {/* SIGNUP BACK (Handles Step 1 and 2) */}
+                            {/* SIGNUP BACK */}
                             <div className="flip-card__back">
-                                {step === 1 ? (
-                                    <>
-                                        <div className="title">Create Account</div>
-                                        <form onSubmit={handleSignupSubmit} className="form-content">
-                                            <div className="input-group">
-                                                <label><User size={14} /> Full Name</label>
-                                                <input
-                                                    type="text"
-                                                    placeholder="john doe"
-                                                    value={signupData.name}
-                                                    onChange={(e) => { setSignupData({ ...signupData, name: e.target.value }); setSignupError(""); }}
-                                                />
-                                            </div>
-                                            <div className="input-group">
-                                                <label><Mail size={14} /> Email Address</label>
-                                                <input
-                                                    type="email"
-                                                    placeholder="hello@world.com"
-                                                    value={signupData.email}
-                                                    onChange={(e) => { setSignupData({ ...signupData, email: e.target.value }); setSignupError(""); }}
-                                                />
-                                            </div>
-                                            <div className="input-group">
-                                                <label><Lock size={14} /> Password</label>
-                                                <div className="password-wrapper">
-                                                    <input
-                                                        type={showPassword ? "text" : "password"}
-                                                        placeholder="8+ characters"
-                                                        value={signupData.password}
-                                                        onChange={(e) => { setSignupData({ ...signupData, password: e.target.value }); setSignupError(""); }}
-                                                    />
-                                                    <button type="button" className="eye-btn" onClick={() => setShowPassword(!showPassword)}>
-                                                        {showPassword ? <FaEyeSlash /> : <FaEye />}
-                                                    </button>
-                                                </div>
-                                            </div>
-                                            <div className="input-group">
-                                                <label><CheckCircle size={14} /> Confirm Password</label>
-                                                <div className="password-wrapper">
-                                                    <input
-                                                        type={showConfirmPassword ? "text" : "password"}
-                                                        placeholder="Re-type password"
-                                                        value={confirmPassword}
-                                                        onChange={(e) => { setConfirmPassword(e.target.value); setSignupError(""); }}
-                                                    />
-                                                    <button type="button" className="eye-btn" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
-                                                        {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
-                                                    </button>
-                                                </div>
-                                            </div>
-                                            {signupError && <p className="error-text">{signupError}</p>}
-                                            <button className="main-btn" disabled={isSigningUp}>
-                                                {isSigningUp ? "Sending..." : "Continue"} <ArrowRight size={18} />
+                                <div className="title">Create Account</div>
+                                <form onSubmit={handleSignupSubmit} className="form-content">
+                                    <div className="input-group">
+                                        <label><User size={14} /> Full Name</label>
+                                        <input
+                                            type="text"
+                                            placeholder="john doe"
+                                            value={signupData.name}
+                                            onChange={(e) => { setSignupData({ ...signupData, name: e.target.value }); setSignupError(""); }}
+                                        />
+                                    </div>
+                                    <div className="input-group">
+                                        <label><Mail size={14} /> Email Address</label>
+                                        <input
+                                            type="email"
+                                            placeholder="hello@world.com"
+                                            value={signupData.email}
+                                            onChange={(e) => { setSignupData({ ...signupData, email: e.target.value }); setSignupError(""); }}
+                                        />
+                                    </div>
+                                    <div className="input-group">
+                                        <label><Lock size={14} /> Password</label>
+                                        <div className="password-wrapper">
+                                            <input
+                                                type={showPassword ? "text" : "password"}
+                                                placeholder="8+ characters"
+                                                value={signupData.password}
+                                                onChange={(e) => { setSignupData({ ...signupData, password: e.target.value }); setSignupError(""); }}
+                                            />
+                                            <button type="button" className="eye-btn" onClick={() => setShowPassword(!showPassword)}>
+                                                {showPassword ? <FaEyeSlash /> : <FaEye />}
                                             </button>
-                                        </form>
-                                    </>
-                                ) : (
-                                    <>
-                                        <div className="title">Verify Email</div>
-                                        <p className="subtitle" style={{marginBottom: "20px"}}>Enter the 6-digit code sent to <br/><strong>{signupData.email}</strong></p>
-                                        <form onSubmit={handleVerifyOtp} className="form-content">
-                                            <div className="input-group">
-                                                <label><ShieldCheck size={14} /> Verification Code</label>
-                                                <input
-                                                    type="text"
-                                                    maxLength="6"
-                                                    placeholder="000000"
-                                                    style={{textAlign: 'center', letterSpacing: '8px', fontSize: '1.2rem'}}
-                                                    value={otpInput}
-                                                    onChange={(e) => setOtpInput(e.target.value)}
-                                                />
-                                            </div>
-                                            <button className="main-btn" disabled={isSigningUp}>
-                                                {isSigningUp ? "Verifying..." : "Verify & Signup"} <CheckCircle size={18} />
+                                        </div>
+                                    </div>
+                                    <div className="input-group">
+                                        <label><CheckCircle size={14} /> Confirm Password</label>
+                                        <div className="password-wrapper">
+                                            <input
+                                                type={showConfirmPassword ? "text" : "password"}
+                                                placeholder="Re-type password"
+                                                value={confirmPassword}
+                                                onChange={(e) => { setConfirmPassword(e.target.value); setSignupError(""); }}
+                                            />
+                                            <button type="button" className="eye-btn" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
+                                                {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
                                             </button>
-                                            
-                                            <div style={{textAlign: 'center', marginTop: '10px'}}>
-                                                {timer > 0 ? (
-                                                    <span style={{fontSize: '0.8rem', opacity: 0.6}}>Resend code in {timer}s</span>
-                                                ) : (
-                                                    <span 
-                                                        onClick={handleSignupSubmit}
-                                                        style={{fontSize: '0.8rem', color: primaryColor, cursor: 'pointer', fontWeight: 'bold'}}
-                                                    >
-                                                        Resend Code
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <button 
-                                                type="button" 
-                                                onClick={() => setStep(1)} 
-                                                style={{background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: '0.75rem', cursor: 'pointer'}}
-                                            >
-                                                ← Back to Signup
-                                            </button>
-                                        </form>
-                                    </>
-                                )}
+                                        </div>
+                                    </div>
+                                    {signupError && <p className="error-text">{signupError}</p>}
+                                    <button className="main-btn" disabled={isSigningUp}>
+                                        {isSigningUp ? "Creating..." : "Sign Up"} <CheckCircle size={18} />
+                                    </button>
+                                </form>
                             </div>
                         </div>
                     </div>
@@ -361,7 +266,6 @@ const Form = () => {
     );
 };
 
-// ... (Rest of your StyledWrapper CSS remains exactly the same)
 const StyledWrapper = styled.div`
   min-height: 90vh;
   display: flex;
@@ -462,6 +366,7 @@ const StyledWrapper = styled.div`
 
   .flip-card__back { transform: rotateY(180deg); }
 
+  /* New Form Header Styling */
   .form-header {
     margin-bottom: 30px;
     text-align: center;
@@ -471,7 +376,7 @@ const StyledWrapper = styled.div`
   .subtitle {
     font-size: 0.85rem;
     color: rgba(255, 255, 255, 0.5);
-    margin-top: -5px;
+    margin-top: -15px;
   }
 
   .title { font-size: 1.5rem; font-weight: bold; color: ${props => props.$primary}; margin-bottom: 20px; }
@@ -527,6 +432,7 @@ const StyledWrapper = styled.div`
     &:disabled { opacity: 0.5; cursor: not-allowed; }
   }
 
+  /* Decorative Dots Section */
   .decorative-dots {
     display: flex;
     justify-content: center;
@@ -543,6 +449,7 @@ const StyledWrapper = styled.div`
     }
   }
 
+  /* Animations */
   @keyframes fadeInDown {
     from { opacity: 0; transform: translateY(-10px); }
     to { opacity: 1; transform: translateY(0); }
