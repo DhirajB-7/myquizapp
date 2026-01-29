@@ -155,7 +155,7 @@ const Form = () => {
             localStorage.setItem("user", JSON.stringify(data.user));
             setIsAuth(true);
             setUserName(data.user?.name || "User");
-            toast.success("Welcome back!");
+           // toast.success("Welcome back!");
             router.push("/");
         } catch (err) {
             toast.error(err.message);
@@ -166,7 +166,7 @@ const Form = () => {
 
     const handleLogout = () => {
         setIsLoggingOut(true);
-        toast.success("Logged out safely");
+        // toast.success("Logged out safely");
         localStorage.clear();
         setIsAuth(false);
         setTimeout(() => (router.push("/")), 1000);
