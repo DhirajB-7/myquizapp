@@ -4,7 +4,7 @@ import styled, { keyframes } from 'styled-components';
 import { Zap, Loader2, Trophy, RefreshCcw, User, Hash, Play, CheckCircle2, XCircle, Timer } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
-const SECONDS_PER_QUESTION = 59; // Set your desired time here
+const SECONDS_PER_QUESTION = 60; // Set your desired time here
 
 const PlayQuiz = () => {
     const [isLoading, setIsLoading] = useState(false);
