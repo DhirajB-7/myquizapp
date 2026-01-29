@@ -18,7 +18,7 @@ const Form = () => {
     const [isEnteringDashboard, setIsEnteringDashboard] = useState(false);
 
     // OTP & Step Logic
-    const [step, setStep] = useState(1);
+    const [step, setStep] = useState(1); // 1: Signup Form, 2: OTP Verification
     const [otpInput, setOtpInput] = useState("");
     const [timer, setTimer] = useState(0);
 
@@ -34,33 +34,18 @@ const Form = () => {
 
     const primaryColor = "#2563eb";
 
-    // --- UPDATED AUTH CHECK & WELCOME TOAST ---
+    // Auth Check
     useEffect(() => {
         const token = localStorage.getItem("token");
         const user = localStorage.getItem("user");
-        const justLoggedIn = sessionStorage.getItem("justLoggedIn");
-        const justLoggedOut = sessionStorage.getItem("justLoggedOut");
-
         if (token && user) {
             try {
                 const parsedUser = JSON.parse(user);
                 setIsAuth(true);
                 setUserName(parsedUser?.name || "User");
-
-                // If we just logged in, show toast here (after redirect)
-                if (justLoggedIn) {
-                    toast.success(`Welcome back, ${parsedUser.name || 'User'}!`);
-                    sessionStorage.removeItem("justLoggedIn");
-                }
             } catch (e) {
                 localStorage.clear();
             }
-        }
-
-        // If we just logged out, show toast here
-        if (justLoggedOut) {
-            toast.success("Logged out safely");
-            sessionStorage.removeItem("justLoggedOut");
         }
     }, []);
 
@@ -74,7 +59,7 @@ const Form = () => {
 
     const handleToggle = () => {
         setIsFlipped(!isFlipped);
-        setStep(1);
+        setStep(1); // Reset to signup step if they flip
         setSignupError("");
         setLoginError("");
         setSignupData({ name: "", email: "", password: "" });
@@ -85,6 +70,7 @@ const Form = () => {
     const isEmailValid = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     const validatePassword = (password) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/.test(password);
 
+    // STEP 1: Send OTP
     const handleSignupSubmit = async (e) => {
         e.preventDefault();
         setSignupError("");
@@ -106,7 +92,7 @@ const Form = () => {
             if (!res.ok) throw new Error(data.error || "Failed to send code");
 
             toast.success("Code sent to your email!", { id: loadingToast });
-            setStep(2);
+            setStep(2); // Move to OTP step
             setTimer(60);
         } catch (err) {
             toast.error(err.message, { id: loadingToast });
@@ -115,6 +101,7 @@ const Form = () => {
         }
     };
 
+    // STEP 2: Verify OTP and Create User
     const handleVerifyOtp = async (e) => {
         e.preventDefault();
         if (!otpInput) return toast.error("Please enter the code");
@@ -122,6 +109,7 @@ const Form = () => {
         setIsSigningUp(true);
         const loadingToast = toast.loading("Verifying code...");
         try {
+            // 1. Verify OTP
             const verifyRes = await fetch("/api/auth/verify", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -130,6 +118,7 @@ const Form = () => {
             const verifyData = await verifyRes.json();
             if (!verifyRes.ok) throw new Error(verifyData.message || "Invalid or expired code");
 
+            // 2. If OTP valid, create the account
             const signupRes = await fetch("/api/auth/signup", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -140,7 +129,7 @@ const Form = () => {
 
             toast.success("Verified! Please login 🎉", { id: loadingToast });
             setStep(1);
-            setIsFlipped(false);
+            setIsFlipped(false); // Flip back to Login
         } catch (err) {
             toast.error(err.message, { id: loadingToast });
         } finally {
@@ -148,7 +137,6 @@ const Form = () => {
         }
     };
 
-    // --- UPDATED LOGIN SUBMIT ---
     const handleLoginSubmit = async (e) => {
         e.preventDefault();
         setLoginError("");
@@ -163,15 +151,11 @@ const Form = () => {
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || "Invalid credentials");
-            
             localStorage.setItem("token", data.token);
             localStorage.setItem("user", JSON.stringify(data.user));
-            
-            // Set flag for the welcome toast
-            sessionStorage.setItem("justLoggedIn", "true");
-            
             setIsAuth(true);
             setUserName(data.user?.name || "User");
+            toast.success("Welcome back!");
             router.push("/");
         } catch (err) {
             toast.error(err.message);
@@ -180,22 +164,12 @@ const Form = () => {
         }
     };
 
-    // --- UPDATED LOGOUT ---
     const handleLogout = () => {
         setIsLoggingOut(true);
+        toast.success("Logged out safely");
         localStorage.clear();
-        // Set flag for the logout toast
-        sessionStorage.setItem("justLoggedOut", "true");
         setIsAuth(false);
-        
-        // Give it a tiny delay to ensure storage is cleared before redirect
-        setTimeout(() => {
-            router.push("/");
-            // Force a slight state refresh if already on home
-            if (window.location.pathname === "/") {
-                window.location.reload();
-            }
-        }, 500);
+        setTimeout(() => (router.push("/")), 1000);
     };
 
     const handleDashboardClick = () => {
@@ -205,7 +179,6 @@ const Form = () => {
 
     return (
         <StyledWrapper $primary={primaryColor}>
-            {/* Note: Ensure <Toaster /> is also in your Root Layout.js for better persistence */}
             <Toaster position="top-center" reverseOrder={false} />
             <div className="wrapper">
                 {isAuth ? (
@@ -280,7 +253,7 @@ const Form = () => {
                                 </div>
                             </div>
 
-                            {/* SIGNUP BACK */}
+                            {/* SIGNUP BACK (Handles Step 1 and 2) */}
                             <div className="flip-card__back">
                                 {step === 1 ? (
                                     <>
@@ -388,6 +361,7 @@ const Form = () => {
         </StyledWrapper>
     );
 };
+
 // ... (Rest of your StyledWrapper CSS remains exactly the same)
 const StyledWrapper = styled.div`
   min-height: 90vh;
