@@ -1,16 +1,16 @@
 "use client";
 import React from 'react';
 import styled from 'styled-components';
-import { Play, PlusCircle, Sparkles } from 'lucide-react';
+import { Play, PlusCircle, Sparkles,Zap, Radio} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 const QuickActions = () => {
-    const router = useRouter();
-   // Add this line or use your existing auth logic
-  const isLoggedIn = typeof window !== 'undefined' && !!localStorage.getItem("token"); 
+  const router = useRouter();
+  // Add this line or use your existing auth logic
+  const isLoggedIn = typeof window !== 'undefined' && !!localStorage.getItem("token");
 
   const actions = [
-    {
+{
       title: "Play Quiz",
       desc: "Enter a code and test your knowledge",
       icon: <Play size={32} />,
@@ -25,33 +25,40 @@ const QuickActions = () => {
       onClick: () => {
         if (!isLoggedIn) {
           alert("Please login to create a quiz!");
-           router.push('/login');
+          router.push('/login');
         } else {
           router.push('/create');
         }
       }
     },
     {
+      title: "Quizzes are Live",
+      desc: "Browse and join active quiz sessions",
+      icon: <Radio size={32} />, // Represents a live broadcast/signal
+      color: "#f43f5e", // A vibrant Rose/Red to indicate 'Live'
+      onClick: () => router.push('/browseQuizzes') // Or wherever your live list is
+    },
+    {
       title: "Quiz by AI",
       desc: "Generate a quiz from a topic or URL",
-      icon: <Sparkles size={32} />,
-      color: "#9b59b6",
+      icon: <Sparkles size={32} />, // Represents fast, AI-powered generation
+      color: "#9b59b6", // Amber/Gold color for AI 'magic'
       onClick: () => router.push('/generate-ai')
     }
   ];
 
-    return (
-        <Container>
-            {actions.map((action, index) => (
-                <Card key={index} color={action.color} onClick={action.onClick}>
-                    <div className="icon-box">{action.icon}</div>
-                    <h3>{action.title}</h3>
-                    <p>{action.desc}</p>
-                    <button className="action-btn cursor-pointer">Go!</button>
-                </Card>
-            ))}
-        </Container>
-    );
+  return (
+    <Container>
+      {actions.map((action, index) => (
+        <Card key={index} color={action.color} onClick={action.onClick}>
+          <div className="icon-box">{action.icon}</div>
+          <h3>{action.title}</h3>
+          <p>{action.desc}</p>
+          <button className="action-btn cursor-pointer">Go!</button>
+        </Card>
+      ))}
+    </Container>
+  );
 };
 
 const Container = styled.div`

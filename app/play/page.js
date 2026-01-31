@@ -93,7 +93,7 @@ const PlayQuiz = () => {
 
         setIsLoading(true);
         try {
-            const response = await fetch(`https://noneditorial-professionally-serena.ngrok-free.dev/Play/${joinData.quizId}`, {
+            const response = await fetch(`https://noneditorial-professionally-serena.ngrok-free.dev/Play/${joinData.quizId}/${joinData.participantName}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',

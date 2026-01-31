@@ -1,10 +1,14 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { Sparkles, Zap, Globe, Cpu, Loader2, Trophy, RefreshCcw, Timer, ChevronRight } from 'lucide-react';
+import { Sparkles, Zap, Globe, Cpu, Loader2, Trophy, RefreshCcw, Timer, ChevronRight, Lock, ShieldCheck } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
-const SECONDS_PER_QUESTION = 60; // Global timer setting
+// --- CONFIGURABLE LIMITS ---
+const SECONDS_PER_QUESTION = 60; 
+const PLAY_LIMIT = 3;             // Max attempts allowed
+const COOLDOWN_HOURS = 2;         // Hours to wait after limit reached
+// ---------------------------
 
 const AIGenerator = () => {
     const [isLoading, setIsLoading] = useState(false);
@@ -12,10 +16,11 @@ const AIGenerator = () => {
     const [userAnswers, setUserAnswers] = useState({});
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [score, setScore] = useState(0);
-
-    // --- State for Step-by-Step Logic ---
     const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
     const [timeLeft, setTimeLeft] = useState(SECONDS_PER_QUESTION);
+    
+    // State to track remaining attempts for UI display
+    const [remainingAttempts, setRemainingAttempts] = useState(PLAY_LIMIT);
 
     const [formData, setFormData] = useState({
         topic: '',
@@ -24,25 +29,66 @@ const AIGenerator = () => {
         language: 'English'
     });
 
+    // --- Rate Limiting Logic ---
+    const checkRateLimit = async () => {
+        try {
+            const res = await fetch('https://api.ipify.org?format=json');
+            const { ip } = await res.json();
+            
+            // LOGGING IP TO CONSOLE AS REQUESTED
+            console.log("Current Device IP:", ip);
+
+            const storageKey = `quiz_limit_${ip}`;
+            const localData = JSON.parse(localStorage.getItem(storageKey) || '{"count": 0, "resetTime": 0}');
+            const now = Date.now();
+
+            if (localData.resetTime > 0 && now > localData.resetTime) {
+                const freshData = { count: 0, resetTime: 0 };
+                localStorage.setItem(storageKey, JSON.stringify(freshData));
+                setRemainingAttempts(PLAY_LIMIT);
+                return { allowed: true, data: freshData, key: storageKey };
+            }
+
+            const currentRemaining = Math.max(0, PLAY_LIMIT - localData.count);
+            setRemainingAttempts(currentRemaining);
+
+            if (localData.count >= PLAY_LIMIT) {
+                return { allowed: false, data: localData, key: storageKey };
+            }
+
+            return { allowed: true, data: localData, key: storageKey };
+        } catch (e) {
+            return { allowed: true, data: { count: 0 }, key: 'fallback' };
+        }
+    };
+
+    // Initial check to update UI on mount
+    useEffect(() => {
+        checkRateLimit();
+    }, []);
+
+    const updateRateLimit = (key, currentData) => {
+        const newCount = currentData.count + 1;
+        const resetTime = newCount >= PLAY_LIMIT ? Date.now() + (COOLDOWN_HOURS * 60 * 60 * 1000) : 0;
+        localStorage.setItem(key, JSON.stringify({ count: newCount, resetTime }));
+        setRemainingAttempts(Math.max(0, PLAY_LIMIT - newCount));
+    };
+
     // --- Timer Logic ---
     useEffect(() => {
         if (!quizData || isSubmitted) return;
-
         if (timeLeft === 0) {
             handleNextQuestion();
             return;
         }
-
         const timer = setInterval(() => {
             setTimeLeft((prev) => prev - 1);
         }, 1000);
-
         return () => clearInterval(timer);
     }, [timeLeft, quizData, isSubmitted]);
 
     const handleNextQuestion = () => {
         const isLastQuestion = currentQuestionIdx === quizData.length - 1;
-
         if (isLastQuestion) {
             handleSubmitExam();
         } else {
@@ -57,13 +103,24 @@ const AIGenerator = () => {
             toast.error("Please Enter A Topic First!");
             return;
         }
+
         setIsLoading(true);
+
+        const limitStatus = await checkRateLimit();
+        if (!limitStatus.allowed) {
+            const remainingMs = limitStatus.data.resetTime - Date.now();
+            const remainingMins = Math.ceil(remainingMs / (1000 * 60));
+            toast.error(`Limit Exceeded! Try again in ${remainingMins} minutes.`, { duration: 5000 });
+            setIsLoading(false);
+            return;
+        }
+
         setIsSubmitted(false);
         setUserAnswers({});
         setCurrentQuestionIdx(0);
 
         try {
-            const response = await fetch('https://quizbyaiservice-production.up.railway.app/Generate', {
+            const response = await fetch('https://noneditorial-professionally-serena.ngrok-free.dev/Generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
@@ -74,6 +131,8 @@ const AIGenerator = () => {
             const data = await response.json();
             setQuizData(data);
             setTimeLeft(SECONDS_PER_QUESTION); 
+            
+            updateRateLimit(limitStatus.key, limitStatus.data);
             toast.success("Quiz Generated Successfully!");
         } catch (error) {
             toast.error(`Failed To Generate: ${error.message}`);
@@ -94,7 +153,6 @@ const AIGenerator = () => {
                 currentScore++;
             }
         });
-
         setScore(currentScore);
         setIsSubmitted(true);
         toast.success("Evaluation Complete!");
@@ -110,6 +168,9 @@ const AIGenerator = () => {
             {!quizData ? (
                 <GlassCard>
                     <Header>
+                        <div className="limit-chip">
+                           <ShieldCheck size={12} /> {remainingAttempts} Attempts Left
+                        </div>
                         <div className="icon-badge"><Cpu size={24} /></div>
                         <div className="text-wrapper">
                             <h2>AI Quiz Architect</h2>
@@ -244,7 +305,8 @@ const AIGenerator = () => {
     );
 };
 
-// --- Styled Components ---
+// --- Updated Styled Components (Included limit-chip) ---
+
 const TimerBarContainer = styled.div`
     width: 100%; max-width: 800px; margin: 0 auto 20px;
     height: 6px; 
@@ -278,6 +340,8 @@ const GlassCard = styled.div`
 
 const Header = styled.div`
     display: flex; flex-direction: column; align-items: center; gap: 16px; margin-bottom: 32px; text-align: center;
+    position: relative;
+    .limit-chip { position: absolute; top: -15px; right: -10px; background: rgba(155, 89, 182, 0.15); border: 1px solid rgba(155, 89, 182, 0.3); color: #bf81da; padding: 4px 12px; border-radius: 100px; font-size: 10px; font-weight: 700; display: flex; align-items: center; gap: 4px; }
     .icon-badge { width: 48px; height: 48px; background: rgba(155, 89, 182, 0.2); border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #bf81da; }
     .text-wrapper { display: flex; flex-direction: column; align-items: center; }
     h2 { margin: 0; font-size: 1.4rem; color: #fff; text-transform: capitalize; }
