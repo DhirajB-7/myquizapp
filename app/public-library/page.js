@@ -207,8 +207,9 @@ const ModalContent = styled(motion.div)`
 `;
 
 const QRWrapper = styled.div`
+
   padding: 15px;
-  background: rgba(255, 255, 255, 0.03); /* Extremely subtle for scanning contrast */
+  background: white; /* Extremely subtle for scanning contrast */
   border-radius: 20px;
   display: inline-block;
   margin: 20px 0;
