@@ -57,62 +57,68 @@ const CreatePage = () => {
     setQuizInfo({ ...quizInfo, [field]: value });
   };
 
-  const validateAndProceed = async () => {
-    const title = quizInfo.quizTitle?.trim();
-    const author = quizInfo.authorName?.trim();
-    const email = quizInfo.email?.trim();
+const validateAndProceed = async () => {
+  const title = quizInfo.quizTitle?.trim();
+  const author = quizInfo.authorName?.trim();
+  const email = quizInfo.email?.trim();
 
-    if (!title || !author || !email) {
-      toast.error("Please fill all required fields");
-      return;
-    }
+  if (!title || !author || !email) {
+    toast.error("Please fill all required fields");
+    return;
+  }
 
-    if (quizInfo.timeLimit && (!quizInfo.questionPerMin || quizInfo.questionPerMin <= 0)) {
-        toast.error("Please set Question Per Minute");
-        return;
-    }
+  if (quizInfo.timeLimit && (!quizInfo.questionPerMin || quizInfo.questionPerMin <= 0)) {
+    toast.error("Please set Seconds Per Question");
+    return;
+  }
 
-    setLoading(true);
+  setLoading(true);
 
-    const step1Payload = {
-      duration: 0, // Sending default duration as 0 as requested
-      createdBy: email,
-      quizTitle: title,
-      author: author,
-      status: quizInfo.isPrivate.toString(),
-      timeLimit: quizInfo.timeLimit,
-      private: quizInfo.isPrivate,
-      timePerQ: parseInt(quizInfo.questionPerMin) // Sending the new field
-    };
-    console.log("Step 1 Payload:", step1Payload);
-
-    try {
-      const response = await fetch('https://noneditorial-professionally-serena.ngrok-free.dev/Create', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': 'true' 
-        },
-        body: JSON.stringify(step1Payload)
-      });
-
-      if (response.ok) {
-        const savedQuizFromServer = await response.json();
-        setQuizInfo(prev => ({ ...prev, quizId: savedQuizFromServer }));
-        setQuestions(prevQuestions =>
-          prevQuestions.map(q => ({ ...q, quizId: savedQuizFromServer }))
-        );
-        toast.success(`Quiz Registered!`);
-        setPhase(1);
-      } else {
-        toast.error(`Backend Error: ${response.status}`);
-      }
-    } catch (error) {
-      toast.error("Connection failed.");
-    } finally {
-      setLoading(false);
-    }
+  // Payload strictly formatted for Spring Boot/Java backend types
+  const step1Payload = {
+    duration: 0, 
+    createdBy: email,
+    quizTitle: title,
+    author: author,
+    status: true,                         // FIXED: Changed from "active" to true (Boolean)
+    timer: Boolean(quizInfo.timeLimit),   
+    private: Boolean(quizInfo.isPrivate), 
+    isPrivate: Boolean(quizInfo.isPrivate),
+    timePerQ: quizInfo.timeLimit ? parseInt(quizInfo.questionPerMin) : 0 
   };
+
+  console.log("Outgoing Payload:", step1Payload);
+
+  try {
+    const response = await fetch('https://noneditorial-professionally-serena.ngrok-free.dev/Create', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true' 
+      },
+      body: JSON.stringify(step1Payload)
+    });
+
+    if (response.ok) {
+      const savedQuizFromServer = await response.json();
+      setQuizInfo(prev => ({ ...prev, quizId: savedQuizFromServer }));
+      setQuestions(prevQuestions =>
+        prevQuestions.map(q => ({ ...q, quizId: savedQuizFromServer }))
+      );
+      toast.success(`Quiz Registered!`);
+      setPhase(1);
+    } else {
+      const errorText = await response.text();
+      console.error("Server 400 Error Detail:", errorText);
+      toast.error(`Server Error: Check Console for Type Mismatch`);
+    }
+  } catch (error) {
+    console.error("Network Error:", error);
+    toast.error("Connection failed.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handlePublish = async () => {
     for (let i = 0; i < questions.length; i++) {
@@ -239,7 +245,7 @@ const CreatePage = () => {
 
                 <div className="grid-2">
                   <FormGroup $primary={primaryColor}>
-                    <label><Timer size={14} /> Time Limit</label>
+                    <label><Timer size={14} /> Time Limit Per Question</label>
                     <VisibilityToggle>
                       <button className={quizInfo.timeLimit ? "active" : ""} onClick={() => handleInfoChange('timeLimit', true)}>Yes</button>
                       <button className={!quizInfo.timeLimit ? "active" : ""} onClick={() => handleInfoChange('timeLimit', false)}>No</button>
@@ -250,7 +256,7 @@ const CreatePage = () => {
                   {quizInfo.timeLimit && (
                     <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}>
                       <FormGroup $primary={primaryColor}>
-                        <label><Clock size={14} /> Seconds Per Question</label>
+                        <label><Clock size={14} /> Minute Per Question</label>
                         <input
                           type="number"
                           className="modern-input"
