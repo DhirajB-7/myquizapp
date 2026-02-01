@@ -73,3 +73,105 @@
   font-size: 18px;
 }
 
+/* --- Quizक्रिडा Custom Full Scrollbar --- */
+
+/* 1. Global scrollbar settings */
+::-webkit-scrollbar {
+  width: 12px;               /* Width of vertical scrollbar */
+  height: 12px;              /* Height of horizontal scrollbar */
+}
+
+/* 2. The Track (Background) */
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.6); /* Deep navy to match Geist/Dark theme */
+  backdrop-filter: blur(10px);       /* Blurs the AppBackground behind the track */
+  border-left: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* 3. The Thumb (The draggable part) */
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg, 
+    rgba(59, 130, 246, 0.4) 0%, 
+    rgba(37, 99, 235, 0.6) 100%
+  ); 
+  border-radius: 20px;       /* Round edges to match your buttons/cards */
+  border: 3px solid transparent; /* Creates padding around the thumb */
+  background-clip: content-box;  /* Ensures the border stays transparent */
+  box-shadow: inset 0 0 10px rgba(59, 130, 246, 0.2);
+  transition: all 0.3s ease-in-out;
+}
+
+/* 4. Thumb Hover State */
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    180deg, 
+    #3b82f6 0%, 
+    #2563eb 100%
+  );
+  background-clip: content-box;
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.5); /* Glowing effect on hover */
+}
+
+/* 5. Thumb Active/Click State */
+::-webkit-scrollbar-thumb:active {
+  background: #60a5fa; /* Lighter blue when dragging */
+  background-clip: content-box;
+}
+
+/* 6. Firefox Support (Standardized properties) */
+@supports (scrollbar-width: thin) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #3b82f6 rgba(15, 23, 42, 0.6);
+  }
+}
+
+/* 7. Prevent horizontal scroll jitters */
+html, body {
+  overflow-x: hidden;
+  scrollbar-gutter: stable; /* Prevents layout jump when scrollbar appears */
+}
+
+/* 3D Rotating Carousel Styles */
+.scene {
+  perspective: 1000px; /* Depth of the 3D field */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.carousel {
+  width: 200px;
+  height: 300px;
+  position: relative;
+  transform-style: preserve-3d;
+  animation: spin 20s linear infinite;
+}
+
+/* Stop motion when user hovers over any part of the carousel */
+.carousel:hover {
+  animation-play-state: paused;
+}
+
+.card {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: #3498db;
+  border: 2px solid #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: white;
+  border-radius: 10px;
+  /* Position cards in a circle: 360 / 5 = 72 degrees each */
+  transform: rotateY(calc(var(--i) * 72deg)) translateZ(300px);
+}
+
+@keyframes spin {
+  from { transform: rotateY(0deg); }
+  to { transform: rotateY(360deg); }
+}

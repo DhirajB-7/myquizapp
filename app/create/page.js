@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, ChevronLeft, ChevronRight, Save, Layout, Clock, Mail, CheckCircle, ArrowRight, Loader2, Wand2, PencilRuler} from 'lucide-react';
+import { Plus, Trash2, ChevronLeft, ChevronRight, Save, Layout, Clock, Mail, CheckCircle, ArrowRight, Loader2, Wand2, PencilRuler, User, Eye, EyeOff, Timer } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
 const CreatePage = () => {
@@ -14,7 +14,10 @@ const CreatePage = () => {
     duration: 10,
     email: "",
     quizTitle: "",
-    status: "active"
+    authorName: "", 
+    isPrivate: false, 
+    status: "active",
+    timeLimit: false // New field for Yes/No toggle
   });
 
   const [questions, setQuestions] = useState([
@@ -38,7 +41,11 @@ const CreatePage = () => {
     if (userData) {
       try {
         const parsedUser = JSON.parse(userData);
-        setQuizInfo(prev => ({ ...prev, email: parsedUser?.email || "Email not found" }));
+        setQuizInfo(prev => ({ 
+          ...prev, 
+          email: parsedUser?.email || "",
+          authorName: parsedUser?.name || "" 
+        }));
       } catch (e) {
         console.error("Error parsing user data:", e);
       }
@@ -50,44 +57,55 @@ const CreatePage = () => {
   };
 
   const validateAndProceed = async () => {
-    if (!quizInfo.quizTitle.trim()) {
-      toast.error("Please enter a Quiz Title");
+    const title = quizInfo.quizTitle?.trim();
+    const author = quizInfo.authorName?.trim();
+    const email = quizInfo.email?.trim();
+
+    if (!title || !author || !email) {
+      toast.error("Please fill all required fields");
       return;
     }
 
     setLoading(true);
+
     const step1Payload = {
-      duration: parseInt(quizInfo.duration),
-      createdBy: quizInfo.email,
-      quizTitle: quizInfo.quizTitle,
-      status: "false"
+      duration: parseInt(quizInfo.duration) || 10,
+      createdBy: email,
+      quizTitle: title,
+      authorName: author, 
+      status: quizInfo.isPrivate.toString(),
+      timeLimit: quizInfo.timeLimit ,
+      private: quizInfo.isPrivate 
     };
 
     try {
       const response = await fetch('https://noneditorial-professionally-serena.ngrok-free.dev/Create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          // ADDED THIS LINE BELOW TO FIX NGROK ISSUES
+          'ngrok-skip-browser-warning': 'true' 
+        },
         body: JSON.stringify(step1Payload)
       });
 
       if (response.ok) {
         const savedQuizFromServer = await response.json();
-        if (savedQuizFromServer) {
-          setQuizInfo(prev => ({ ...prev, quizId: savedQuizFromServer }));
-          setQuestions(prevQuestions =>
-            prevQuestions.map(q => ({ ...q, quizId: savedQuizFromServer }))
-          );
-          toast.success(`Quiz Registered! ID: ${savedQuizFromServer}`);
-          setPhase(1);
-        } else {
-          toast.error("Server didn't return a Quiz ID");
-        }
+        setQuizInfo(prev => ({ ...prev, quizId: savedQuizFromServer }));
+        setQuestions(prevQuestions =>
+          prevQuestions.map(q => ({ ...q, quizId: savedQuizFromServer }))
+        );
+        toast.success(`Quiz Registered!`);
+        setPhase(1);
       } else {
+        const errorData = await response.text();
+        console.error("Server Response Error:", errorData);
         toast.error(`Backend Error: ${response.status}`);
       }
     } catch (error) {
-      toast.error("Error connecting to backend.");
-      console.error(error);
+      // Look at your browser console (F12) to see the exact error
+      console.error("Fetch Error:", error); 
+      toast.error("Connection failed. Check browser console.");
     } finally {
       setLoading(false);
     }
@@ -182,7 +200,7 @@ const CreatePage = () => {
         {phase === 1 && (
           <div className="progress-section">
             <div className="progress-stats">
-               Question <span>{currentSlide + 1}</span> of {questions.length}
+                Question <span>{currentSlide + 1}</span> of {questions.length}
             </div>
             <ProgressBar $primary={primaryColor}>
               <motion.div 
@@ -216,26 +234,66 @@ const CreatePage = () => {
                   />
                 </FormGroup>
 
+                <FormGroup $primary={primaryColor}>
+                  <label><User size={14} /> Author Name</label>
+                  <input
+                    type="text"
+                    className="modern-input"
+                    placeholder="Your name or display name"
+                    value={quizInfo.authorName}
+                    onChange={(e) => handleInfoChange('authorName', e.target.value)}
+                  />
+                </FormGroup>
+
                 <div className="grid-2">
                   <FormGroup $primary={primaryColor}>
-                    <label><Clock size={14} /> Duration</label>
-                    <input
-                      type="text"
-                      className="modern-input disabled"
-                      // placeholder="1 Min / Question"
-                      value="1  Min / Question"
-                      disabled
-                    />
+                    <label><Timer size={14} /> Time Limit</label>
+                    <VisibilityToggle>
+                      <button 
+                        className={quizInfo.timeLimit ? "active" : ""} 
+                        onClick={() => handleInfoChange('timeLimit', true)}
+                      >
+                        Yes
+                      </button>
+                      <button 
+                        className={!quizInfo.timeLimit ? "active" : ""} 
+                        onClick={() => handleInfoChange('timeLimit', false)}
+                      >
+                        No
+                      </button>
+                    </VisibilityToggle>
                   </FormGroup>
 
                   <FormGroup $primary={primaryColor}>
-                    <label><Mail size={14} /> Author</label>
+                    <label><Clock size={14} /> Duration (Mins)</label>
                     <input
-                      type="email"
-                      className="modern-input disabled"
-                      value={quizInfo.email}
-                      disabled
+                      type="number"
+                      className={`modern-input ${!quizInfo.timeLimit ? 'disabled' : ''}`}
+                      value={quizInfo.duration}
+                      disabled={!quizInfo.timeLimit}
+                      onChange={(e) => handleInfoChange('duration', e.target.value)}
+                      placeholder="e.g. 10"
                     />
+                  </FormGroup>
+                </div>
+
+                <div className="grid-2">
+                  <FormGroup $primary={primaryColor}>
+                    <label>{quizInfo.isPrivate ? <EyeOff size={14} /> : <Eye size={14} />} Visibility</label>
+                    <VisibilityToggle>
+                      <button 
+                        className={!quizInfo.isPrivate ? "active" : ""} 
+                        onClick={() => handleInfoChange('isPrivate', false)}
+                      >
+                        Public
+                      </button>
+                      <button 
+                        className={quizInfo.isPrivate ? "active" : ""} 
+                        onClick={() => handleInfoChange('isPrivate', true)}
+                      >
+                        Private
+                      </button>
+                    </VisibilityToggle>
                   </FormGroup>
                 </div>
 
@@ -303,7 +361,7 @@ const CreatePage = () => {
                     const isSelected = questions[currentSlide].correct === letter;
 
                     return (
-                      <div key={letter} className="option-wrapper">
+                      <OptionWrapper key={letter}>
                         <ModernOption 
                           $primary={primaryColor}
                           $isSelected={isSelected}
@@ -330,7 +388,7 @@ const CreatePage = () => {
                           />
                         </ModernOption>
                         <div className="char-limit">{currentVal.length}/255</div>
-                      </div>
+                      </OptionWrapper>
                     );
                   })}
                 </div>
@@ -358,11 +416,41 @@ const CreatePage = () => {
   );
 };
 
-/* --- MODERN STYLES --- */
+
+
+/* --- STYLES --- */
+
+const VisibilityToggle = styled.div`
+  display: flex;
+  background: rgba(15, 23, 42, 0.4);
+  border-radius: 12px;
+  padding: 4px;
+  border: 1px solid rgba(255,255,255,0.1);
+  height: 50px;
+
+  button {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: #94a3b8;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: 0.2s;
+
+    &.active {
+      background: #3b82f6;
+      color: white;
+      box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+    }
+  }
+`;
+
 const PageWrapper = styled.div`
   min-height: 80vh;
   padding: 60px 20px;
- margin-top: -60px;
+  margin-top: -60px;
   color: white;
   font-family: 'Inter', sans-serif;
   .spinner { animation: spin 1s linear infinite; }
@@ -373,22 +461,18 @@ const ContentHeader = styled(motion.div)`
   max-width: 700px;
   margin: 0 auto 30px;
   text-align: center;
-
   .icon-badge {
     width: 42px; height: 42px; background: rgba(59, 130, 246, 0.1);
     border-radius: 12px; display: flex; align-items: center; justify-content: center;
     margin: 0 auto 15px; color: ${props => props.$primary};
     border: 1px solid rgba(59, 130, 246, 0.2);
   }
-
   h2 { font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 12px; }
-
   .mini-badge {
     display: flex; gap: 8px; justify-content: center;
     .id-tag { background: #3b82f6; color: white; padding: 4px 12px; border-radius: 6px; font-weight: 700; font-size: 0.75rem; }
     .title-tag { background: rgba(255,255,255,0.05); padding: 4px 12px; border-radius: 6px; font-size: 0.75rem; color: #94a3b8; }
   }
-
   .progress-section {
     margin-top: 30px;
     .progress-stats { font-size: 0.85rem; color: #94a3b8; margin-bottom: 10px; span { color: white; font-weight: 700; } }
@@ -409,17 +493,14 @@ const NavHeader = styled.div`
 `;
 
 const SlideCard = styled(motion.div)`
- 
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 24px;
   padding: 40px;
   position: relative;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-
   .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 25px; }
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-  
   @media (max-width: 650px) { 
     padding: 25px;
     .options-grid, .grid-2 { grid-template-columns: 1fr; } 
@@ -429,14 +510,12 @@ const SlideCard = styled(motion.div)`
 const FormGroup = styled.div`
   margin-bottom: 25px;
   label { display: flex; align-items: center; gap: 8px; color: #94a3b8; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; }
-  
   .modern-input, .modern-textarea {
     width: 100%; background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(255,255,255,0.1);
     border-radius: 12px; padding: 14px 18px; color: white; font-size: 1rem; transition: 0.2s;
     &::placeholder { color: #475569; }
     &:focus { outline: none; border-color: #3b82f6; background: rgba(15, 23, 42, 0.6); box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
   }
-
   .modern-textarea { min-height: 100px; resize: none; line-height: 1.6; }
   .disabled { opacity: 0.5; cursor: not-allowed; background: rgba(255,255,255,0.02); }
 `;
@@ -446,15 +525,12 @@ const ModernOption = styled.div`
   background: ${props => props.$isSelected ? 'rgba(59, 130, 246, 0.1)' : 'rgba(15, 23, 42, 0.4)'};
   border: 1px solid ${props => props.$isSelected ? props.$primary : 'rgba(255,255,255,0.1)'};
   border-radius: 12px; padding: 12px 16px; transition: 0.2s;
-
   .option-label { color: ${props => props.$primary}; font-weight: 800; font-size: 0.85rem; }
-  
   textarea {
     flex: 1; background: transparent; border: none; color: white;
     resize: none; outline: none; font-size: 0.9rem; line-height: 1.4;
     &::placeholder { color: #475569; }
   }
-
   input[type="radio"] { accent-color: #3b82f6; cursor: pointer; transform: scale(1.2); }
 `;
 
@@ -494,11 +570,6 @@ const DeleteBtn = styled(motion.button)`
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 `;
 
-const charLimitStyle = {
-  fontSize: '0.65rem', color: '#475569', textAlign: 'right', marginTop: '4px', paddingRight: '5px'
-};
-
-// Update to the internal component to use styled div for limit
 const OptionWrapper = styled.div`
   .char-limit { font-size: 0.65rem; color: #475569; text-align: right; margin-top: 4px; }
 `;

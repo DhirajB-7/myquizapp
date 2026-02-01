@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   BookOpen, Clock, AlertCircle, Plus, Loader2, Fingerprint, Eye,
   HelpCircle, ChevronLeft, Edit3, Save, Trash2, Inbox, FileText, X, Trophy, Download,
-  QrCode, Share2, Search
+  QrCode, Share2, Search, Radio
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import toast, { Toaster } from 'react-hot-toast';
@@ -423,9 +423,90 @@ const SearchBar = ({ value, onChange, onClear }) => {
     </SearchWrapper>
   );
 };
+/* --- LIVE PARTICIPANTS MODAL --- */
+const LiveParticipantsModal = ({ quizId, onClose }) => {
+  const [participants, setParticipants] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchLive = async () => {
+      try {
+        const response = await fetch(`https://noneditorial-professionally-serena.ngrok-free.dev/LiveParticipants/${quizId}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setParticipants(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch live participants");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLive();
+    const interval = setInterval(fetchLive, 1000); // Refresh every 5s
+    return () => clearInterval(interval);
+  }, [quizId]);
+
+  return (
+    <ModalOverlay initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+      <ModalContent initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} style={{ maxWidth: '450px' }}>
+        <div className="modal-header">
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Radio size={20} color="#ef4444" className="spinner" style={{ animationDuration: '2s' }} />
+            Live Participants
+          </h3>
+          <button onClick={onClose}><X size={20} /></button>
+        </div>
+
+        {loading && participants.length === 0 ? (
+          <div className="loading-center"><Loader2 className="spinner" /></div>
+        ) : participants.length === 0 ? (
+          <p className="no-data">No one is currently taking this quiz.</p>
+        ) : (
+          <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+            <ResultTable>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Student Name</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {participants.map((p, i) => (
+                  <tr key={i}>
+                    <td>{i + 1}</td>
+                    <td style={{ fontWeight: '500' }}>{p.name}</td>
+                    <td>
+                      <span style={{
+                        color: '#10b981',
+                        fontSize: '0.75rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}>
+                        <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }} />
+                        Online
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </ResultTable>
+          </div>
+        )}
+      </ModalContent>
+    </ModalOverlay>
+  );
+};
 
 /* --- MAIN DASHBOARD --- */
 const UserDashboard = () => {
+  const [viewLiveId, setViewLiveId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const router = useRouter();
   const [quizzes, setQuizzes] = useState([]);
@@ -520,6 +601,7 @@ const UserDashboard = () => {
             onClose={() => setViewQRId(null)}
           />
         )}
+        {viewLiveId && <LiveParticipantsModal quizId={viewLiveId} onClose={() => setViewLiveId(null)} />}
       </AnimatePresence>
 
       <AnimatePresence mode="wait">
@@ -571,6 +653,9 @@ const UserDashboard = () => {
                           <StatusBadge onClick={() => handleToggleStatus(quiz.quizId)} $isActive={String(quiz.status) === "true"} disabled={switchingStatusId === quiz.quizId}>
                             {switchingStatusId === quiz.quizId ? <Loader2 size={12} className="spinner" /> : (String(quiz.status) === "true" ? "Active" : "Inactive")}
                           </StatusBadge>
+                          <LiveIconButton onClick={() => setViewLiveId(quiz.quizId)} title="Live Participants">
+                            <Radio size={16} />
+                          </LiveIconButton>
                           <QRIconButton onClick={() => setViewQRId(quiz.quizId)} title="Show QR"><QrCode size={16} /></QRIconButton>
                           <EditIconButton onClick={() => setEditQuizId(quiz.quizId)} title="Edit Quiz"><Edit3 size={16} /></EditIconButton>
                           <ResultIconButton onClick={() => setViewResultId(quiz.quizId)} title="Show Results"><FileText size={16} /></ResultIconButton>
@@ -596,6 +681,8 @@ const UserDashboard = () => {
 };
 
 /* --- STYLES --- */
+
+
 const SearchWrapper = styled.div`
   margin-bottom: 30px;
   
@@ -666,6 +753,7 @@ const DashboardWrapper = styled.div`
   margin: 0 auto;
   padding: 40px 20px;
   color: #f8fafc;
+  margin-top:-50px;
 
   .main-header {
     display: flex;
@@ -748,5 +836,29 @@ const EmptyState = styled.div`
     font-weight: 500;
   }
 `;
+
+/* --- ADD THESE AT THE BOTTOM OF YOUR FILE --- */
+
+const LiveIconButton = styled.button`
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: none;
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s;
+  
+  &:hover { 
+    background: #ef4444; 
+    color: white; 
+  }
+
+  .spinner {
+    animation: spin 2s linear infinite;
+  }
+`;
+
 
 export default UserDashboard;

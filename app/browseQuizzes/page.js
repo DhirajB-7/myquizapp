@@ -42,7 +42,7 @@ const TopicQuizManager = () => {
   const [loading, setLoading] = useState(true);
   const [gameStarted, setGameStarted] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [timer, setTimer] = useState(15);
+  const [timer, setTimer] = useState(60);
   const [userAnswers, setUserAnswers] = useState({});
   const [isFinished, setIsFinished] = useState(false);
 
@@ -78,7 +78,7 @@ const TopicQuizManager = () => {
       setQuestions(data);
       setGameStarted(true);
       setCurrentIndex(0);
-      setTimer(15);
+      setTimer(60);
     } catch (err) {
       toast.error("Error fetching questions");
     } finally {
@@ -100,7 +100,7 @@ const TopicQuizManager = () => {
   const handleNext = () => {
     if (currentIndex < questions.length - 1) {
       setCurrentIndex(prev => prev + 1);
-      setTimer(15);
+      setTimer(60);
     } else {
       setIsFinished(true);
     }
