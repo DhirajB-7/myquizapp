@@ -46,7 +46,7 @@ const QuickActions = () => {
       onClick: () => router.push('/generate-ai') 
     },
     { 
-      title: "Public Quizzes", 
+      title: "Quizz Gallery", 
       desc: "Explore a massive library of community-created quizzes across all categories.", 
       icon: <Globe size={26} />, 
       color: "#10b981", 

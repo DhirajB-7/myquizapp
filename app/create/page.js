@@ -56,7 +56,7 @@ const CreatePage = () => {
     setQuizInfo({ ...quizInfo, [field]: value });
   };
 
-  const validateAndProceed = async () => {
+ const validateAndProceed = async () => {
     const title = quizInfo.quizTitle?.trim();
     const author = quizInfo.authorName?.trim();
     const email = quizInfo.email?.trim();
@@ -71,19 +71,20 @@ const CreatePage = () => {
     const step1Payload = {
       duration: parseInt(quizInfo.duration) || 10,
       createdBy: email,
-      quizTitle: title,
-      authorName: author, 
+      quizTitle: title,    // Sending Quiz Title
+      author: author,  // Sending Author Name
       status: quizInfo.isPrivate.toString(),
-      timeLimit: quizInfo.timeLimit ,
+      timeLimit: quizInfo.timeLimit,
       private: quizInfo.isPrivate 
     };
+
+    console.log("Step 1 Payload:", step1Payload);
 
     try {
       const response = await fetch('https://noneditorial-professionally-serena.ngrok-free.dev/Create', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          // ADDED THIS LINE BELOW TO FIX NGROK ISSUES
           'ngrok-skip-browser-warning': 'true' 
         },
         body: JSON.stringify(step1Payload)
@@ -103,7 +104,6 @@ const CreatePage = () => {
         toast.error(`Backend Error: ${response.status}`);
       }
     } catch (error) {
-      // Look at your browser console (F12) to see the exact error
       console.error("Fetch Error:", error); 
       toast.error("Connection failed. Check browser console.");
     } finally {
