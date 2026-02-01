@@ -11,13 +11,14 @@ const CreatePage = () => {
 
   const [quizInfo, setQuizInfo] = useState({
     quizId: null,
-    duration: 10,
+    duration: 0, // Now strictly a default sender
     email: "",
     quizTitle: "",
     authorName: "", 
     isPrivate: false, 
     status: "active",
-    timeLimit: false // New field for Yes/No toggle
+    timeLimit: false,
+    questionPerMin: "" // New field for per-question timer
   });
 
   const [questions, setQuestions] = useState([
@@ -56,7 +57,7 @@ const CreatePage = () => {
     setQuizInfo({ ...quizInfo, [field]: value });
   };
 
- const validateAndProceed = async () => {
+  const validateAndProceed = async () => {
     const title = quizInfo.quizTitle?.trim();
     const author = quizInfo.authorName?.trim();
     const email = quizInfo.email?.trim();
@@ -66,18 +67,23 @@ const CreatePage = () => {
       return;
     }
 
+    if (quizInfo.timeLimit && (!quizInfo.questionPerMin || quizInfo.questionPerMin <= 0)) {
+        toast.error("Please set Question Per Minute");
+        return;
+    }
+
     setLoading(true);
 
     const step1Payload = {
-      duration: parseInt(quizInfo.duration) || 10,
+      duration: 0, // Sending default duration as 0 as requested
       createdBy: email,
-      quizTitle: title,    // Sending Quiz Title
-      author: author,  // Sending Author Name
+      quizTitle: title,
+      author: author,
       status: quizInfo.isPrivate.toString(),
       timeLimit: quizInfo.timeLimit,
-      private: quizInfo.isPrivate 
+      private: quizInfo.isPrivate,
+      timePerQ: parseInt(quizInfo.questionPerMin) // Sending the new field
     };
-
     console.log("Step 1 Payload:", step1Payload);
 
     try {
@@ -99,13 +105,10 @@ const CreatePage = () => {
         toast.success(`Quiz Registered!`);
         setPhase(1);
       } else {
-        const errorData = await response.text();
-        console.error("Server Response Error:", errorData);
         toast.error(`Backend Error: ${response.status}`);
       }
     } catch (error) {
-      console.error("Fetch Error:", error); 
-      toast.error("Connection failed. Check browser console.");
+      toast.error("Connection failed.");
     } finally {
       setLoading(false);
     }
@@ -181,11 +184,7 @@ const CreatePage = () => {
     <PageWrapper $primary={primaryColor}>
       <Toaster position="top-center" />
 
-      <ContentHeader
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        $primary={primaryColor}
-      >
+      <ContentHeader initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} $primary={primaryColor}>
         <div className="header-content">
           <div className="icon-badge"><PencilRuler size={20} /></div>
           <h2>{phase === 0 ? "Create New Quiz" : `Add Quiz Content`}</h2>
@@ -199,9 +198,7 @@ const CreatePage = () => {
 
         {phase === 1 && (
           <div className="progress-section">
-            <div className="progress-stats">
-                Question <span>{currentSlide + 1}</span> of {questions.length}
-            </div>
+            <div className="progress-stats">Question <span>{currentSlide + 1}</span> of {questions.length}</div>
             <ProgressBar $primary={primaryColor}>
               <motion.div 
                 className="fill" 
@@ -216,12 +213,7 @@ const CreatePage = () => {
       <MainContainer>
         <AnimatePresence mode="wait">
           {phase === 0 && (
-            <SlideCard
-              key="info-card"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.05 }}
-            >
+            <SlideCard key="info-card" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.05 }}>
               <div className="card-inner">
                 <FormGroup $primary={primaryColor}>
                   <label><Layout size={14} /> Quiz Title</label>
@@ -249,63 +241,40 @@ const CreatePage = () => {
                   <FormGroup $primary={primaryColor}>
                     <label><Timer size={14} /> Time Limit</label>
                     <VisibilityToggle>
-                      <button 
-                        className={quizInfo.timeLimit ? "active" : ""} 
-                        onClick={() => handleInfoChange('timeLimit', true)}
-                      >
-                        Yes
-                      </button>
-                      <button 
-                        className={!quizInfo.timeLimit ? "active" : ""} 
-                        onClick={() => handleInfoChange('timeLimit', false)}
-                      >
-                        No
-                      </button>
+                      <button className={quizInfo.timeLimit ? "active" : ""} onClick={() => handleInfoChange('timeLimit', true)}>Yes</button>
+                      <button className={!quizInfo.timeLimit ? "active" : ""} onClick={() => handleInfoChange('timeLimit', false)}>No</button>
                     </VisibilityToggle>
                   </FormGroup>
 
-                  <FormGroup $primary={primaryColor}>
-                    <label><Clock size={14} /> Duration (Mins)</label>
-                    <input
-                      type="number"
-                      className={`modern-input ${!quizInfo.timeLimit ? 'disabled' : ''}`}
-                      value={quizInfo.duration}
-                      disabled={!quizInfo.timeLimit}
-                      onChange={(e) => handleInfoChange('duration', e.target.value)}
-                      placeholder="e.g. 10"
-                    />
-                  </FormGroup>
+                  {/* Dynamic Field: Appears only if Time Limit is Yes */}
+                  {quizInfo.timeLimit && (
+                    <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}>
+                      <FormGroup $primary={primaryColor}>
+                        <label><Clock size={14} /> Seconds Per Question</label>
+                        <input
+                          type="number"
+                          className="modern-input"
+                          value={quizInfo.questionPerMin}
+                          onChange={(e) => handleInfoChange('questionPerMin', e.target.value)}
+                          placeholder="e.g. 30"
+                        />
+                      </FormGroup>
+                    </motion.div>
+                  )}
                 </div>
 
                 <div className="grid-2">
                   <FormGroup $primary={primaryColor}>
                     <label>{quizInfo.isPrivate ? <EyeOff size={14} /> : <Eye size={14} />} Visibility</label>
                     <VisibilityToggle>
-                      <button 
-                        className={!quizInfo.isPrivate ? "active" : ""} 
-                        onClick={() => handleInfoChange('isPrivate', false)}
-                      >
-                        Public
-                      </button>
-                      <button 
-                        className={quizInfo.isPrivate ? "active" : ""} 
-                        onClick={() => handleInfoChange('isPrivate', true)}
-                      >
-                        Private
-                      </button>
+                      <button className={!quizInfo.isPrivate ? "active" : ""} onClick={() => handleInfoChange('isPrivate', false)}>Public</button>
+                      <button className={quizInfo.isPrivate ? "active" : ""} onClick={() => handleInfoChange('isPrivate', true)}>Private</button>
                     </VisibilityToggle>
                   </FormGroup>
                 </div>
 
                 <ActionArea>
-                  <PrimaryBtn
-                    $primary={primaryColor}
-                    $gradient={accentGradient}
-                    onClick={validateAndProceed}
-                    disabled={loading}
-                    whileHover={{ y: -2 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
+                  <PrimaryBtn $primary={primaryColor} $gradient={accentGradient} onClick={validateAndProceed} disabled={loading} whileHover={{ y: -2 }} whileTap={{ scale: 0.98 }}>
                     {loading ? <Loader2 className="spinner" size={20} /> : <>Continue <ArrowRight size={20} /></>}
                   </PrimaryBtn>
                 </ActionArea>
@@ -316,34 +285,16 @@ const CreatePage = () => {
           {phase === 1 && (
             <div key="questions-wrapper">
               <NavHeader>
-                <NavBtn onClick={() => setPhase(0)} disabled={loading} className="back-btn">
-                  <ChevronLeft size={18} /> Back
-                </NavBtn>
-
+                <NavBtn onClick={() => setPhase(0)} disabled={loading} className="back-btn"><ChevronLeft size={18} /> Back</NavBtn>
                 <div className="step-nav">
-                  <NavBtn onClick={() => setCurrentSlide(Math.max(0, currentSlide - 1))} disabled={currentSlide === 0 || loading}>
-                    <ChevronLeft size={18} />
-                  </NavBtn>
+                  <NavBtn onClick={() => setCurrentSlide(Math.max(0, currentSlide - 1))} disabled={currentSlide === 0 || loading}><ChevronLeft size={18} /></NavBtn>
                   <span className="slide-counter">{currentSlide + 1}</span>
-                  <NavBtn onClick={() => setCurrentSlide(Math.min(questions.length - 1, currentSlide + 1))} disabled={currentSlide === questions.length - 1 || loading}>
-                    <ChevronRight size={18} />
-                  </NavBtn>
+                  <NavBtn onClick={() => setCurrentSlide(Math.min(questions.length - 1, currentSlide + 1))} disabled={currentSlide === questions.length - 1 || loading}><ChevronRight size={18} /></NavBtn>
                 </div>
               </NavHeader>
 
-              <SlideCard
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-              >
-                <DeleteBtn 
-                  onClick={() => removeSlide(currentSlide)} 
-                  disabled={loading}
-                  whileHover={{ scale: 1.1 }}
-                >
-                  <Trash2 size={18} />
-                </DeleteBtn>
-
+              <SlideCard initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                <DeleteBtn onClick={() => removeSlide(currentSlide)} disabled={loading} whileHover={{ scale: 1.1 }}><Trash2 size={18} /></DeleteBtn>
                 <FormGroup $primary={primaryColor}>
                   <label>Question Content</label>
                   <textarea
@@ -359,13 +310,9 @@ const CreatePage = () => {
                   {['a', 'b', 'c', 'd'].map((letter) => {
                     const currentVal = questions[currentSlide][letter] || "";
                     const isSelected = questions[currentSlide].correct === letter;
-
                     return (
                       <OptionWrapper key={letter}>
-                        <ModernOption 
-                          $primary={primaryColor}
-                          $isSelected={isSelected}
-                        >
+                        <ModernOption $primary={primaryColor} $isSelected={isSelected}>
                           <div className="option-label">{letter.toUpperCase()}</div>
                           <textarea
                             disabled={loading}
@@ -380,12 +327,7 @@ const CreatePage = () => {
                             }}
                             placeholder="Option text..."
                           />
-                          <input
-                            type="radio"
-                            name={`correct-${currentSlide}`}
-                            checked={isSelected}
-                            onChange={() => updateQuestion('correct', letter)}
-                          />
+                          <input type="radio" name={`correct-${currentSlide}`} checked={isSelected} onChange={() => updateQuestion('correct', letter)} />
                         </ModernOption>
                         <div className="char-limit">{currentVal.length}/255</div>
                       </OptionWrapper>
@@ -395,16 +337,8 @@ const CreatePage = () => {
               </SlideCard>
 
               <ActionArea>
-                <SecondaryBtn $primary={primaryColor} onClick={addSlide} disabled={loading}>
-                  <Plus size={20} /> Add Slide
-                </SecondaryBtn>
-                <PrimaryBtn
-                  $primary={primaryColor}
-                  $gradient={accentGradient}
-                  onClick={handlePublish}
-                  disabled={loading}
-                  whileHover={{ y: -2 }}
-                >
+                <SecondaryBtn $primary={primaryColor} onClick={addSlide} disabled={loading}><Plus size={20} /> Add Slide</SecondaryBtn>
+                <PrimaryBtn $primary={primaryColor} $gradient={accentGradient} onClick={handlePublish} disabled={loading} whileHover={{ y: -2 }}>
                   {loading ? <Loader2 className="spinner" size={20} /> : <><Save size={20} /> Finish & Publish</>}
                 </PrimaryBtn>
               </ActionArea>
@@ -415,7 +349,6 @@ const CreatePage = () => {
     </PageWrapper>
   );
 };
-
 
 
 /* --- STYLES --- */
