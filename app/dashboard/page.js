@@ -57,7 +57,7 @@ const ResultModal = ({ quizId, onClose }) => {
   useEffect(() => {
     const fetchResults = async () => {
       try {
-        const response = await fetch(`https://noneditorial-professionally-serena.ngrok-free.dev/Logged/Result/${quizId}`, {
+        const response = await fetch(`https://quiz-krida.onrender.com/Logged/Result/${quizId}`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' }
         });
@@ -149,7 +149,7 @@ const EditQuizModule = ({ quizId, onBack, primaryColor, userEmail }) => {
     if (!quizId) return;
     const fetchForEdit = async () => {
       try {
-        const response = await fetch(`https://noneditorial-professionally-serena.ngrok-free.dev/Logged/Preview/${quizId}`, {
+        const response = await fetch(`https://quiz-krida.onrender.com/Logged/Preview/${quizId}`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' }
         });
@@ -250,7 +250,7 @@ const EditQuizModule = ({ quizId, onBack, primaryColor, userEmail }) => {
     };
 
     try {
-      const response = await fetch(`https://noneditorial-professionally-serena.ngrok-free.dev/Logged/Edit`, {
+      const response = await fetch(`https://quiz-krida.onrender.com/Logged/Edit`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
         body: JSON.stringify(payload)
@@ -356,7 +356,7 @@ const FullQuizPreview = ({ quizId, onBack, primaryColor }) => {
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
-        const response = await fetch(`https://noneditorial-professionally-serena.ngrok-free.dev/Logged/Preview/${quizId}`, {
+        const response = await fetch(`https://quiz-krida.onrender.com/Logged/Preview/${quizId}`, {
           method: 'GET', headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' }
         });
         if (response.ok) { const data = await response.json(); setQuestions(data.questions || []); }
@@ -431,7 +431,7 @@ const LiveParticipantsModal = ({ quizId, onClose }) => {
   useEffect(() => {
     const fetchLive = async () => {
       try {
-        const response = await fetch(`https://noneditorial-professionally-serena.ngrok-free.dev/LiveParticipants/${quizId}`, {
+        const response = await fetch(`https://quiz-krida.onrender.com/LiveParticipants/${quizId}`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' }
         });
@@ -537,7 +537,7 @@ const UserDashboard = () => {
     if (!email) return;
     setLoading(true);
     try {
-      const response = await fetch(`https://noneditorial-professionally-serena.ngrok-free.dev/Logged?email=${email}`, {
+      const response = await fetch(`https://quiz-krida.onrender.com/Logged?email=${email}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
         cache: 'no-store'
@@ -556,7 +556,7 @@ const UserDashboard = () => {
   const handleToggleStatus = async (quizId) => {
     setSwitchingStatusId(quizId);
     try {
-      const response = await fetch(`https://noneditorial-professionally-serena.ngrok-free.dev/Logged/SwitchStatus/${quizId}`, {
+      const response = await fetch(`https://quiz-krida.onrender.com/Logged/SwitchStatus/${quizId}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' }
       });
@@ -584,7 +584,7 @@ const UserDashboard = () => {
 
   const handleDeleteQuiz = async (quizId) => {
     if (!window.confirm("Delete quiz?")) return;
-    const response = await fetch(`https://noneditorial-professionally-serena.ngrok-free.dev/Logged/Delete/${quizId}`, {
+    const response = await fetch(`https://quiz-krida.onrender.com/Logged/Delete/${quizId}`, {
       method: 'DELETE', headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' }
     });
     if (response.ok) {
