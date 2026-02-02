@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   BookOpen, Clock, AlertCircle, Plus, Loader2, Fingerprint, Eye,
   HelpCircle, ChevronLeft, Edit3, Save, Trash2, Inbox, FileText, X, Trophy, Download,
-  QrCode, Share2, Search, Radio, MoreVertical, Lock, Globe
+  QrCode, Share2, Search, Radio, MoreVertical, Lock, Globe, AlertTriangle
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import toast, { Toaster } from 'react-hot-toast';
@@ -517,10 +517,16 @@ const DeleteConfirmationModal = ({ isOpen, onConfirm, onCancel, title }) => (
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
+          style={{ maxWidth: '400px' }} // Force narrower width for dialog
         >
-          <div className="warning-icon"><AlertTriangle size={32} color="#ef4444" /></div>
+          <div className="warning-icon">
+            <AlertTriangle size={48} />
+          </div>
           <h3>Delete Quiz?</h3>
-          <p>Are you sure you want to delete <strong>"{title}"</strong>? This action cannot be undone.</p>
+          <p>
+            Are you sure you want to delete <strong>"{title}"</strong>? 
+            <br />This action cannot be undone.
+          </p>
           <div className="modal-actions">
             <button className="cancel-btn" onClick={onCancel}>Cancel</button>
             <button className="confirm-btn" onClick={onConfirm}>Delete Quiz</button>
@@ -538,7 +544,7 @@ const UserDashboard = () => {
   const router = useRouter();
   const [quizzes, setQuizzes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isCreating, setIsCreating] = useState(false); // NEW: Loader state for New Quiz
+  const [isCreating, setIsCreating] = useState(false);
   const [userEmail, setUserEmail] = useState("");
   const [selectedQuizId, setSelectedQuizId] = useState(null);
   const [editQuizId, setEditQuizId] = useState(null);
@@ -546,7 +552,7 @@ const UserDashboard = () => {
   const [viewQRId, setViewQRId] = useState(null);
   const [switchingStatusId, setSwitchingStatusId] = useState(null);
   const [activeMenuId, setActiveMenuId] = useState(null);
-  const [deleteTarget, setDeleteTarget] = useState(null); // NEW: State for custom delete dialog
+  const [deleteTarget, setDeleteTarget] = useState(null); 
   
   const primaryColor = "#2563eb";
 
@@ -641,7 +647,6 @@ const UserDashboard = () => {
     <DashboardWrapper>
       <Toaster position="bottom-right" />
       
-      {/* Custom Delete Modal */}
       <DeleteConfirmationModal 
         isOpen={!!deleteTarget}
         title={deleteTarget?.quizTitle}
@@ -783,7 +788,6 @@ const UserDashboard = () => {
     </DashboardWrapper>
   );
 };
-
 /* --- STYLES --- */
 /* --- EDIT MODULE STYLES --- */
 /* --- FULL WIDTH REFINED EDIT MODULE --- */
@@ -1296,21 +1300,21 @@ const ModalOverlay = styled(motion.div)`
   inset: 0; 
   background: rgba(0, 0, 0, 0.7); 
   backdrop-filter: blur(8px); 
-  z-index: 1000; 
+  z-index: 9999; /* Higher z-index to stay on top */
   display: flex; 
   align-items: center; 
   justify-content: center; 
   padding: 20px;
 `;
 const ModalContent = styled(motion.div)`
-  background: rgba(30, 41, 59, 0.9); 
+  background: rgba(30, 41, 59, 0.95); 
   border: 1px solid rgba(255, 255, 255, 0.1); 
   border-radius: 24px; 
   width: 100%; 
-  max-width: 450px; /* Slimmer for the delete dialog */
+  max-width: 600px; 
   padding: 32px; 
   position: relative; 
-  backdrop-filter: blur(16px); 
+  backdrop-filter: blur(20px); 
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
   text-align: center;
 
@@ -1325,10 +1329,7 @@ const ModalContent = styled(motion.div)`
     font-size: 1.5rem; 
     margin-bottom: 12px; 
     color: #fff;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 10px;
+    font-weight: 700;
   }
 
   p { 
@@ -1341,7 +1342,6 @@ const ModalContent = styled(motion.div)`
   .modal-actions {
     display: flex;
     gap: 12px;
-
     button {
       flex: 1;
       padding: 14px;
@@ -1351,48 +1351,17 @@ const ModalContent = styled(motion.div)`
       transition: all 0.2s;
       border: none;
     }
-
     .cancel-btn {
       background: rgba(255, 255, 255, 0.05);
       color: #f8fafc;
       border: 1px solid rgba(255, 255, 255, 0.1);
       &:hover { background: rgba(255, 255, 255, 0.1); }
     }
-
     .confirm-btn {
       background: #ef4444;
       color: white;
-      &:hover { 
-        background: #dc2626;
-        box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.4);
-      }
+      &:hover { background: #dc2626; transform: translateY(-1px); }
     }
-  }
-
-  /* Specific styles for Results/Live Modals */
-  &.large {
-    max-width: 800px;
-    text-align: left;
-  }
-
-  .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    button { background: none; border: none; color: #94a3b8; cursor: pointer; }
-  }
-
-  .loading-center {
-    display: flex;
-    justify-content: center;
-    padding: 40px;
-  }
-
-  .no-data {
-    text-align: center;
-    color: #94a3b8;
-    padding: 20px;
   }
 `;
 const ResultTable = styled.table` width: 100%; border-collapse: collapse; margin-top: 10px; th, td { text-align: left; padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); } th { font-size: 0.8rem; color: #94a3b8; text-transform: uppercase; } .score-cell { color: #10b981; font-weight: 700; } `;
