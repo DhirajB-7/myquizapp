@@ -32,7 +32,7 @@ const QuickActions = () => {
       onClick: () => !isLoggedIn ? router.push('/login') : router.push('/create') 
     },
     { 
-      title: "Live Sessions", 
+      title: "Global Topics", 
       desc: "Real-time global challenges happening right now. Join and climb the leaderboard.", 
       icon: <Radio size={26} />, 
       color: "#f43f5e", 

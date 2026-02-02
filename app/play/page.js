@@ -4,8 +4,6 @@ import styled, { keyframes } from 'styled-components';
 import { Zap, Loader2, Trophy, RefreshCcw, User, Hash, Play, CheckCircle2, XCircle, Timer } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
-const SECONDS_PER_QUESTION = 60; 
-
 const PlayQuiz = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [quizData, setQuizData] = useState(null);
@@ -14,7 +12,9 @@ const PlayQuiz = () => {
     const [score, setScore] = useState(0);
     
     const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
-    const [timeLeft, setTimeLeft] = useState(SECONDS_PER_QUESTION);
+    // Dynamic timer state
+    const [secondsPerQuestion, setSecondsPerQuestion] = useState(60); 
+    const [timeLeft, setTimeLeft] = useState(60);
 
     const [joinData, setJoinData] = useState({
         participantName: '',
@@ -23,10 +23,7 @@ const PlayQuiz = () => {
 
     // --- Content Protection & QR Logic ---
     useEffect(() => {
-        // 1. Prevent Right-Click
         const handleContextMenu = (e) => e.preventDefault();
-        
-        // 2. Prevent Keyboard Shortcuts (Copy, DevTools, View Source)
         const handleKeyDown = (e) => {
             if (
                 e.ctrlKey && (e.key === 'c' || e.key === 'u' || e.key === 's' || e.key === 'p') || 
@@ -43,7 +40,6 @@ const PlayQuiz = () => {
         document.addEventListener('contextmenu', handleContextMenu);
         document.addEventListener('keydown', handleKeyDown);
 
-        // --- URL Param Logic ---
         const params = new URLSearchParams(window.location.search);
         const idFromUrl = params.get('id') || params.get('quizId');
         
@@ -81,7 +77,7 @@ const PlayQuiz = () => {
             handleSubmitExam();
         } else {
             setCurrentQuestionIdx(prev => prev + 1);
-            setTimeLeft(SECONDS_PER_QUESTION);
+            setTimeLeft(secondsPerQuestion); // Use dynamic value
         }
     };
 
@@ -93,6 +89,24 @@ const PlayQuiz = () => {
 
         setIsLoading(true);
         try {
+            // 1. Get Quiz Config (Time per question)
+            const configRes = await fetch(`https://quiz-krida.onrender.com/Logged/Preview/${joinData.quizId}`, {
+                method: 'GET',
+                headers: { 'ngrok-skip-browser-warning': '69420' }
+            });
+            
+            let dynamicTime = 60; // fallback
+            if (configRes.ok) {
+                const configData = await configRes.json();
+                // Assuming timePerQ is in minutes, converting to seconds. 
+                // If it's already in seconds, remove the "* 60"
+                if (configData.quiz && configData.quiz.timePerQ) {
+                    dynamicTime = parseInt(configData.quiz.timePerQ) * 60;
+                    setSecondsPerQuestion(dynamicTime);
+                }
+            }
+
+            // 2. Join Quiz
             const response = await fetch(`https://quiz-krida.onrender.com/Play/${joinData.quizId}/${joinData.participantName}`, {
                 method: 'GET',
                 headers: {
@@ -103,18 +117,13 @@ const PlayQuiz = () => {
 
             if (!response.ok) throw new Error(`Quiz not Started Yet`);
 
-            const contentType = response.headers.get("content-type");
-            if (!contentType || !contentType.includes("application/json")) {
-                throw new Error("Server returned an invalid format (HTML). Check your API endpoint.");
-            }
-
             const data = await response.json();
             if (!data.questions || data.questions.length === 0) {
                 throw new Error("This quiz has no questions.");
             }
 
             setQuizData(data);
-            setTimeLeft(SECONDS_PER_QUESTION); 
+            setTimeLeft(dynamicTime); // Set initial timer to dynamic value
             toast.success(`Joined: ${data.quiz.quizTitle}`);
         } catch (error) {
             console.error("Fetch Error:", error);
@@ -237,7 +246,7 @@ const PlayQuiz = () => {
                     
                     {!isSubmitted && (
                         <TimerBarContainer>
-                            <TimerBarFill progress={(timeLeft / SECONDS_PER_QUESTION) * 100} />
+                            <TimerBarFill progress={(timeLeft / secondsPerQuestion) * 100} />
                         </TimerBarContainer>
                     )}
 
