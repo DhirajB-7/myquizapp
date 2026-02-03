@@ -104,12 +104,23 @@ body {
 .eye-icon:hover {
   opacity: 1;
 }
-/* This hides the cursor on the entire page */
-html, body {
+/* 1. Target every single element, including their hover and active states */
+*, *::before, *::after {
     cursor: none !important;
 }
 
-/* This ensures the cursor stays hidden even when hovering over clickable things */
-a, button, input, textarea, [role="button"] {
+/* 2. Target the specific "I-beam" cursor that appears on text */
+html, body, p, span, h1, h2, h3, h4, h5, h6, div, input, textarea {
     cursor: none !important;
+}
+
+/* 3. Ensure links and buttons don't override it */
+a, button, [role="button"], .brutal-btn-primary, .brutal-btn-outline {
+    cursor: none !important;
+}
+
+/* 4. This stops the "text cursor" when you are about to select text */
+::selection {
+    background: #fff;
+    color: #000;
 }

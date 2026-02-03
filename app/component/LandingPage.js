@@ -325,7 +325,7 @@ const ScrollProgress = styled(motion.div)`
 const PageWrapper = styled.div`
     color: #fff;
     min-height: 100vh;
-    margin-top:-150px;
+    margin-top:-190px;
     width: 100%;
     font-family: 'Courier New', monospace;
     background: #000;
@@ -545,7 +545,7 @@ const FloatingStats = styled(motion.div)`
     display: flex;
     justify-content: center;
     gap: 40px;
-    margin-top: 80px;
+    margin-top: 40px;
     flex-wrap: wrap;
     
     @media (max-width: 768px) {
