@@ -6,22 +6,22 @@ import toast, { Toaster } from 'react-hot-toast';
 
 // --- ENHANCED ZOLVI THEME ---
 const theme = {
-  bg: "#050505",
-  surface: "#0d0d0d",
-  surfaceLighter: "#151515",
-  border: "#262626",
-  borderActive: "#404040",
-  text: "#FFFFFF",
-  muted: "#737373",
-  accent: "#FFFFFF",
-  danger: "#FF4444",
-  success: "#00FF41",
-  cyan: "#00F0FF",
-  font: "'Monaco', 'Consolas', monospace"
+    bg: "#050505",
+    surface: "#0d0d0d",
+    surfaceLighter: "#151515",
+    border: "#262626",
+    borderActive: "#404040",
+    text: "#FFFFFF",
+    muted: "#737373",
+    accent: "#FFFFFF",
+    danger: "#FF4444",
+    success: "#00FF41",
+    cyan: "#00F0FF",
+    font: "'Monaco', 'Consolas', monospace"
 };
 
-const SECONDS_PER_QUESTION = 60; 
-const PLAY_LIMIT = 3; 
+const SECONDS_PER_QUESTION = 60;
+const PLAY_LIMIT = 3;
 const COOLDOWN_HOURS = 2;
 
 const AIGenerator = () => {
@@ -105,9 +105,9 @@ const AIGenerator = () => {
             setQuizData(data);
             setTimeLeft(SECONDS_PER_QUESTION);
             const newCount = limitStatus.data.count + 1;
-            localStorage.setItem(limitStatus.key, JSON.stringify({ 
-                count: newCount, 
-                resetTime: newCount >= PLAY_LIMIT ? Date.now() + (COOLDOWN_HOURS * 3600000) : 0 
+            localStorage.setItem(limitStatus.key, JSON.stringify({
+                count: newCount,
+                resetTime: newCount >= PLAY_LIMIT ? Date.now() + (COOLDOWN_HOURS * 3600000) : 0
             }));
             setRemainingAttempts(PLAY_LIMIT - newCount);
         } catch (error) { toast.error("SYNTHESIS_FAILED"); }
@@ -124,8 +124,8 @@ const AIGenerator = () => {
 
     return (
         <PageContainer>
-            <Toaster position="bottom-right" toastOptions={{ style: { background: '#000', color: '#fff', border: `1px solid ${theme.border}`, borderRadius: '0px', fontFamily: theme.font }}} />
-            
+            <Toaster position="bottom-right" toastOptions={{ style: { background: '#000', color: '#fff', border: `1px solid ${theme.border}`, borderRadius: '0px', fontFamily: theme.font } }} />
+
             <BackgroundDecor>
                 <div className="grid-overlay" />
                 <div className="scanline" />
@@ -168,9 +168,9 @@ const AIGenerator = () => {
                                 <label><Globe size={12} /> LANG_INTERFACE</label>
                                 <div className="pill-container">
                                     {['English', 'Hindi', 'Marathi'].map((lang) => (
-                                        <Pill 
-                                            key={lang} 
-                                            $active={formData.language === lang} 
+                                        <Pill
+                                            key={lang}
+                                            $active={formData.language === lang}
                                             onClick={() => setFormData({ ...formData, language: lang })}
                                         >
                                             {lang.toUpperCase()}
@@ -205,7 +205,13 @@ const AIGenerator = () => {
                             <h2>{isSubmitted ? "EVALUATION_REPORT" : `PROCESSED_DOMAIN: ${formData.topic}`}</h2>
                         </div>
                         {isSubmitted && (
-                            <GhostButton onClick={() => setQuizData(null)}>
+                            <GhostButton onClick={() => {
+                                setQuizData(null);          // Clears the quiz questions
+                                setUserAnswers({});         // CLEARS PREVIOUS SELECTIONS
+                                setCurrentQuestionIdx(0);   // RESETS TO FIRST QUESTION
+                                setIsSubmitted(false);      // RESETS SUBMISSION STATE
+                                setScore(0);                // RESETS SCORE
+                            }}>
                                 <RefreshCcw size={14} /> SYSTEM_REBOOT
                             </GhostButton>
                         )}
@@ -224,7 +230,7 @@ const AIGenerator = () => {
                                 <QuestionCard key={idx} $isSubmitted={isSubmitted}>
                                     <div className="card-header">
                                         <div className="q-num">NODE_IDX: [0{idx + 1}]</div>
-                                        <div className="q-id">AUTH_ID: {Math.floor(Math.random()*9000)+1000}</div>
+                                        <div className="q-id">AUTH_ID: {Math.floor(Math.random() * 9000) + 1000}</div>
                                     </div>
                                     <h3>{q.question}</h3>
                                     <div className="options-list">
@@ -238,10 +244,10 @@ const AIGenerator = () => {
                                             } else if (isSelected) status = "selected";
 
                                             return (
-                                                <Option 
-                                                    key={i} 
-                                                    className={status} 
-                                                    onClick={() => !isSubmitted && setUserAnswers(prev => ({...prev, [idx]: opt}))}
+                                                <Option
+                                                    key={i}
+                                                    className={status}
+                                                    onClick={() => !isSubmitted && setUserAnswers(prev => ({ ...prev, [idx]: opt }))}
                                                 >
                                                     <span className="key">{String.fromCharCode(65 + i)}</span>
                                                     <span className="val">{opt}</span>
