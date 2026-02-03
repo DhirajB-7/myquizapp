@@ -104,3 +104,12 @@ body {
 .eye-icon:hover {
   opacity: 1;
 }
+/* This hides the cursor on the entire page */
+html, body {
+    cursor: none !important;
+}
+
+/* This ensures the cursor stays hidden even when hovering over clickable things */
+a, button, input, textarea, [role="button"] {
+    cursor: none !important;
+}

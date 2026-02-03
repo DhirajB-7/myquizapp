@@ -48,32 +48,42 @@ const Line = styled(motion.div)`
 
 const GlobalGunCursor = () => {
     const [isPressed, setIsPressed] = useState(false);
+    const [isVisible, setIsVisible] = useState(false); // Hide until first movement
+    
     const mouseX = useMotionValue(-100);
     const mouseY = useMotionValue(-100);
 
-    // Sniper-spec spring: High stiffness, very low mass for instant tracking
     const springConfig = { damping: 25, stiffness: 500, mass: 0.3 };
     const x = useSpring(mouseX, springConfig);
     const y = useSpring(mouseY, springConfig);
 
     useEffect(() => {
         const moveMouse = (e) => {
+            // Only show the cursor once the mouse actually moves
+            if (!isVisible) setIsVisible(true);
+            
             mouseX.set(e.clientX);
             mouseY.set(e.clientY);
         };
+        
         const handleDown = () => setIsPressed(true);
         const handleUp = () => setIsPressed(false);
+        const handleLeave = () => setIsVisible(false); // Hide if mouse leaves window
 
         window.addEventListener('mousemove', moveMouse);
         window.addEventListener('mousedown', handleDown);
         window.addEventListener('mouseup', handleUp);
+        window.addEventListener('mouseleave', handleLeave);
         
         return () => {
             window.removeEventListener('mousemove', moveMouse);
             window.removeEventListener('mousedown', handleDown);
             window.removeEventListener('mouseup', handleUp);
+            window.removeEventListener('mouseleave', handleLeave);
         };
-    }, [mouseX, mouseY]);
+    }, [mouseX, mouseY, isVisible]);
+
+    if (!isVisible) return null;
 
     return (
         <CrosshairContainer 
@@ -83,7 +93,6 @@ const GlobalGunCursor = () => {
                 scale: isPressed ? 1.2 : 1 
             }}
         >
-            {/* Using motion on lines for the recoil "spread" effect */}
             <Line className="vertical top" animate={{ y: isPressed ? -4 : 0 }} />
             <Line className="vertical bottom" animate={{ y: isPressed ? 4 : 0 }} />
             <Line className="horizontal left" animate={{ x: isPressed ? -4 : 0 }} />

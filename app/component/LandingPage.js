@@ -10,18 +10,23 @@ import QuickActions from './QuickActions';
 
 const LandingPage = () => {
     const featuresRef = useRef(null);
-    const [randomUsers, setRandomUsers] = useState(Math.floor(Math.random() * 9000) + 1000);
+    // 1. Set to a static number initially to match Server-Side Rendering
+    const [randomUsers, setRandomUsers] = useState(5000);
+    const [isMounted, setIsMounted] = useState(false); 
     const { scrollYProgress } = useScroll();
     const scaleProgress = useSpring(scrollYProgress, {
         stiffness: 100,
         damping: 30,
         restDelta: 0.001
     });
-    //cursor
-   
 
-    // Random user counter that updates every 3 seconds
     useEffect(() => {
+        // 2. Set isMounted to true once we are on the client
+        setIsMounted(true);
+        
+        // Trigger initial random number immediately on mount
+        setRandomUsers(Math.floor(Math.random() * 9000) + 1000);
+
         const interval = setInterval(() => {
             setRandomUsers(Math.floor(Math.random() * 9000) + 1000);
         }, 3000);
@@ -38,9 +43,6 @@ const LandingPage = () => {
 
     return (
         <PageWrapper>
-           
-
-            {/* Scroll progress bar */}
             <ScrollProgress style={{ scaleX: scaleProgress }} />
 
             <HeroSection
@@ -76,7 +78,7 @@ const LandingPage = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 1 }}
                 >
-                    QuizKrida blends artistic design with AI precision to turn 
+                    QuizKrida blends artistic design with AI precision to turn
                     learning into a high-stakes digital experience.
                 </motion.p>
 
@@ -95,7 +97,6 @@ const LandingPage = () => {
                     </button>
                 </motion.div>
 
-                {/* Animated stats banner */}
                 <FloatingStats
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -103,7 +104,8 @@ const LandingPage = () => {
                 >
                     <StatItem>
                         <Zap size={16} />
-                        <span>{randomUsers} USERS</span>
+                        {/* 3. Use isMounted to prevent text mismatch during hydration */}
+                        <span>{isMounted ? randomUsers : "5000"} USERS</span>
                     </StatItem>
                     <StatItem>
                         <Target size={16} />
@@ -116,7 +118,7 @@ const LandingPage = () => {
                 </FloatingStats>
             </HeroSection>
 
-            {/* Approach Section with stagger animation */}
+            {/* Rest of your component remains exactly the same... */}
             <ApproachSection ref={featuresRef}>
                 <motion.div
                     className="section-label"
@@ -155,7 +157,7 @@ const LandingPage = () => {
                 <QuickActions />
             </CardsWrapper>
 
-        
+
             <StatsSection>
                 <motion.div
                     className="stats-header"
@@ -171,7 +173,7 @@ const LandingPage = () => {
 
                 <div className="stats-grid">
                     <div className="stat-item">
-                        <h4>12.4K</h4>
+                        <h4>{isMounted ? randomUsers : "5000"}</h4>
                         <p>Global Competitors</p>
                     </div>
                     <div className="stat-item">
@@ -190,7 +192,6 @@ const LandingPage = () => {
                         <span>● @Alex_Dev just earned 'AI Master' Badge</span>
                         <span>● @Rahul.js won the Science Bowl</span>
                         <span>● @Dhiraj_01 won $50 in Weekly Quiz</span>
-                        {/* Duplicate for seamless loop */}
                         <span>● @Dhiraj_01 won $50 in Weekly Quiz</span>
                         <span>● @Alex_Dev just earned 'AI Master' Badge</span>
                     </div>
@@ -268,8 +269,7 @@ const LandingPage = () => {
         </PageWrapper>
     );
 };
-
-// Animated word component
+// --- Animations ---
 const AnimatedWord = ({ children, delay }) => (
     <motion.span
         style={{ display: 'inline-block' }}
@@ -285,8 +285,6 @@ const AnimatedWord = ({ children, delay }) => (
         {children}
     </motion.span>
 );
-
-// --- Animations ---
 const marquee = keyframes`
     0% { transform: translateX(0); }
     100% { transform: translateX(-50%); }
