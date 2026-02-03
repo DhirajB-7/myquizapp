@@ -19,21 +19,13 @@ const QuickActions = () => {
   };
 
   const actions = [
-<<<<<<< HEAD
-    { title: "PLAY QUIZ", desc: "JOIN AN ARENA USING A UNIQUE ROOM CODE AND COMPETE IN REAL-TIME.", icon: <Play size={24} />, onClick: () => router.push('/play') },
-    { title: "CREATE QUIZ", desc: "DESIGN CUSTOM LOGIC, SET COUNTDOWNS, AND CURATE YOUR OWN SESSIONS.", icon: <PlusCircle size={24} />, onClick: () => !isLoggedIn ? router.push('/login') : router.push('/create') },
-    { title: "QUICK MAKER", desc: "GENERATE HIGH-STAKES CHALLENGES IN SECONDS USING OUR AI ENGINE.", icon: <Sparkles size={24} />, onClick: () => router.push('/quick-quiz-maker') },
-    { title: "QUIZ BY AI", desc: "HARNESS DEEP-LEARNING TO TRANSFORM ANY TOPIC INTO A COMPLETE QUIZ.", icon: <Sparkles size={24} />, onClick: () => router.push('/generate-ai') },
-    { title: "PUBLIC GALLERY", desc: "EXPLORE AN EXPANSIVE LIBRARY OF COMMUNITY-VETTED CHALLENGES.", icon: <Globe size={24} />, onClick: () => router.push('/public-library') },
-    { title: "GLOBAL TOPICS", desc: "REAL-TIME CHALLENGES HAPPENING NOW. SECURE YOUR DIGITAL LEGACY.", icon: <Radio size={24} />, onClick: () => router.push('/browseQuizzes') },
-=======
     { title: "PLAY QUIZ", desc: "Enter a room code, play instantly, and check your score right away.", icon: <Play size={20} />, onClick: () => router.push('/play') },
     { title: "CREATE QUIZ", desc: "Build personalized quiz, add timer, and host your own quiz.", icon: <PlusCircle size={20} />, onClick: () => !isLoggedIn ? router.push('/login') : router.push('/create') },
     { title: "QUIZ BY AI", desc: "Just choose a topic, and AI will generate a quiz for you. Attend it and get your score instantly.", icon: <Sparkles size={20} />, onClick: () => router.push('/generate-ai') },
     { title: "AI-ASSISTED QUIZ", desc: "Automatically build quiz from AI-created question data in seconds.", icon: <Sparkles size={20} />, onClick: () => router.push('/quick-quiz-maker') },
     { title: "PUBLIC GALLERY", desc: "Explore a wide collection of public quizzes created by others, or create your own anytime.", icon: <Globe size={20} />, onClick: () => router.push('/public-library') },
     { title: "GLOBAL TOPICS", desc: "Discover global topics and test your knowledge in different areas.", icon: <Radio size={20} />, onClick: () => router.push('/browseQuizzes') },
->>>>>>> 20e21ab02ec30ff729fd19ef19b0e4ec4c845d85
+
   ];
 
   return (
