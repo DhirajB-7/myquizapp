@@ -216,7 +216,7 @@ const LandingPage = () => {
                             <h5>DEVELOPERS</h5>
                             <div className="dev-links">
                                 <DevButton
-                                    href="https://portfolio-alpha-two-xpwkgmpok8.vercel.app/"
+                                    href="https://ketanbidave.vercel.app/"
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     whileHover={{ x: 5 }}
