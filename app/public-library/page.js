@@ -13,7 +13,7 @@ const PublicQuizzes = () => {
 
     const fetchQuizzes = async (isInitial = false) => {
         try {
-            const response = await fetch(`${process.env.SERVER_URL}/Public`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/Public`, {
                 headers: { 'ngrok-skip-browser-warning': 'true' }
             });
             const data = await response.json();

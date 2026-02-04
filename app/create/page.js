@@ -111,7 +111,7 @@ const CreatePage = () => {
         };
 
         try {
-            const response = await fetch(`${process.env.SERVER_URL}/Create`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/Create`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -190,7 +190,7 @@ const CreatePage = () => {
         }));
 
         try {
-            const response = await fetch(`${process.env.SERVER_URL}/Questions`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/Questions`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)

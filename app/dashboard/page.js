@@ -57,7 +57,7 @@ const ResultModal = ({ quizId, onClose }) => {
   useEffect(() => {
     const fetchResults = async () => {
       try {
-        const response = await fetch(`${process.env.SERVER_URL}/Logged/Result/${quizId}`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/Logged/Result/${quizId}`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' }
         });
@@ -149,7 +149,7 @@ const EditQuizModule = ({ quizId, onBack, primaryColor, userEmail }) => {
     if (!quizId) return;
     const fetchForEdit = async () => {
       try {
-        const response = await fetch(`${process.env.SERVER_URL}/Logged/Preview/${quizId}`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/Logged/Preview/${quizId}`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' }
         });
@@ -250,7 +250,7 @@ const EditQuizModule = ({ quizId, onBack, primaryColor, userEmail }) => {
     };
 
     try {
-      const response = await fetch(`${process.env.SERVER_URL}/Logged/Edit`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/Logged/Edit`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
         body: JSON.stringify(payload)
@@ -356,7 +356,7 @@ const FullQuizPreview = ({ quizId, onBack, primaryColor }) => {
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
-        const response = await fetch(`${process.env.SERVER_URL}/Logged/Preview/${quizId}`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/Logged/Preview/${quizId}`, {
           method: 'GET', headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' }
         });
         if (response.ok) { const data = await response.json(); setQuestions(data.questions || []); }
@@ -433,7 +433,7 @@ const LiveParticipantsModal = ({ quizId, onClose }) => {
   useEffect(() => {
     const fetchLive = async () => {
       try {
-        const response = await fetch(`${process.env.SERVER_URL}/LiveParticipants/${quizId}`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/LiveParticipants/${quizId}`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' }
         });
@@ -576,7 +576,7 @@ const UserDashboard = () => {
     if (!email) return;
     setLoading(true);
     try {
-      const response = await fetch(`${process.env.SERVER_URL}/Logged?email=${email}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/Logged?email=${email}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
         cache: 'no-store'
@@ -595,7 +595,7 @@ const UserDashboard = () => {
   const handleToggleStatus = async (quizId) => {
     setSwitchingStatusId(quizId);
     try {
-      const response = await fetch(`${process.env.SERVER_URL}/Logged/SwitchStatus/${quizId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/Logged/SwitchStatus/${quizId}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' }
       });
@@ -626,7 +626,7 @@ const UserDashboard = () => {
     const quizId = deleteTarget.quizId;
     
     try {
-      const response = await fetch(`${process.env.SERVER_URL}/Logged/Delete/${quizId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/Logged/Delete/${quizId}`, {
         method: 'DELETE', headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' }
       });
       if (response.ok) {

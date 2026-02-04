@@ -75,7 +75,7 @@ const PlayQuiz = () => {
         }
         setIsLoading(true);
         try {
-            const configRes = await fetch(`${process.env.SERVER_URL}/Logged/Preview/${joinData.quizId}`, {
+            const configRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/Logged/Preview/${joinData.quizId}`, {
                 method: 'GET',
                 headers: { 'ngrok-skip-browser-warning': '69420' }
             });
@@ -89,7 +89,7 @@ const PlayQuiz = () => {
                 }
             }
 
-            const response = await fetch(`${process.env.SERVER_URL}/Play/${joinData.quizId}/${joinData.participantName}`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/Play/${joinData.quizId}/${joinData.participantName}`, {
                 method: 'GET',
                 headers: { 'ngrok-skip-browser-warning': '69420' },
             });
@@ -128,7 +128,7 @@ const PlayQuiz = () => {
 
         setIsLoading(true);
         try {
-            const response = await fetch(`${process.env.SERVER_URL}/Play/Submit`, {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/Play/Submit`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': '69420' },
                 body: JSON.stringify(finalSubmission)
