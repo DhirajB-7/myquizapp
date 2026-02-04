@@ -356,7 +356,7 @@ const FullQuizPreview = ({ quizId, onBack, primaryColor }) => {
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
-        const response = await fetch(`https://quiz-krida.onrender.com/Logged/Preview/${quizId}`, {
+        const response = await fetch(`https://noneditorial-professionally-serena.ngrok-free.dev/Logged/Preview/${quizId}`, {
           method: 'GET', headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' }
         });
         if (response.ok) { const data = await response.json(); setQuestions(data.questions || []); }
@@ -576,7 +576,7 @@ const UserDashboard = () => {
     if (!email) return;
     setLoading(true);
     try {
-      const response = await fetch(`https://quiz-krida.onrender.com/Logged?email=${email}`, {
+      const response = await fetch(`https://noneditorial-professionally-serena.ngrok-free.dev/Logged?email=${email}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
         cache: 'no-store'
@@ -728,7 +728,7 @@ const UserDashboard = () => {
                             $isActive={String(quiz.status) === "true"}
                             disabled={switchingStatusId === quiz.quizId}
                           >
-                            {switchingStatusId === quiz.quizId ? <Loader2 size={12} className="spinner" /> : (String(quiz.status) === "true" ? "END" : "START")}
+                            {switchingStatusId === quiz.quizId ? <Loader2 size={12} className="spinner" /> : (String(quiz.status) === "true" ? "DEACTIVATE" : "ACTIVATE")}
                           </StatusBadge>
 
                           <div style={{ position: 'relative' }}>
@@ -814,7 +814,7 @@ const DashboardWrapper = styled.div`
     align-items: center;
     margin-bottom: 40px;
     gap: 15px; 
-    border-bottom: 4px solid #fff;  /* Already correct */
+    border-bottom: 1px solid #fff;  /* Already correct */
     padding-bottom: 20px;
     
     h1 { 
@@ -828,7 +828,7 @@ const DashboardWrapper = styled.div`
       color: #fff;  /* CHANGE: was #000 */
       background: #000;  /* CHANGE: was #fff */
       padding: 2px 8px;
-      border: 2px solid #fff;  /* CHANGE: was #000 */
+      border: 1px solid #fff;  /* CHANGE: was #000 */
     }
     
     @media (max-width: 640px) {
@@ -857,12 +857,12 @@ const QuizGrid = styled.div`
 `;
 
 const StyledCard = styled(motion.div)`
-  background: #000;  /* Already correct */
+  background: #1E1E1E;  /* Already correct */
   border: 4px solid #fff;  /* Already correct */
   padding: 20px;
   position: relative;
   overflow: visible !important;
-  box-shadow: 8px 8px 0 #fff;  /* Already correct */
+  box-shadow: 4px 4px 0 #fff;  /* Already correct */
   transition: transform 0.1s ease;
 
   &:hover {
@@ -928,8 +928,8 @@ const ActionWrapper = styled.div`
 
 const StatusBadge = styled.button`
   cursor: pointer;
-  background: ${props => props.$isActive ? '#fff' : '#000'};  /* CHANGE: swap colors */
-  color: ${props => props.$isActive ? '#000' : '#fff'};  /* CHANGE: swap colors */
+  background: ${props => props.$isActive ? '#dc3545' : '#28a745'}; #28a745 /* CHANGE: swap colors */
+  color: ${props => props.$isActive ? '#fff' : '#fff'};  /* CHANGE: swap colors */
   border: 2px solid #fff;  /* CHANGE: was #000 */
 
   &:hover:not(:disabled) {
@@ -1017,7 +1017,7 @@ const SearchWrapper = styled.div`
     display: flex;
     align-items: center;
     background: #000;  /* CHANGE: was #fff */
-    border: 4px solid #fff;  /* CHANGE: was #000 */
+    border: 0.5px solid #fff;  /* CHANGE: was #000 */
     padding: 6px 18px;
     gap: 12px;
     

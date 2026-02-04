@@ -1,10 +1,10 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import styled, { keyframes, css } from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Plus, Trash2, ChevronLeft, ChevronRight, Save, Layout,
-    Clock, CheckCircle, ArrowRight, Loader2, User, Timer, Cpu, Globe, Lock
+    Trash2, ChevronLeft, ChevronRight, Save, Layout,
+    Clock, CheckCircle, ArrowRight, Loader2, User, Timer, Cpu, Globe
 } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
@@ -16,7 +16,7 @@ const theme = {
     text: "#ffffff",
     muted: "#555555",
     accent: "#ffffff",
-    success: "#00ff41", // Added for showing correct option
+    success: "#00ff41",
     font: "'Courier New', Courier, monospace"
 };
 
@@ -52,9 +52,7 @@ const CreatePage = () => {
                     email: parsedUser?.email || "",
                     authorName: parsedUser?.name || ""
                 }));
-            } catch (e) {
-                console.error("Error parsing user data:", e);
-            }
+            } catch (e) { console.error("Error parsing user data:", e); }
         }
     }, []);
 
@@ -81,7 +79,7 @@ const CreatePage = () => {
         };
 
         try {
-            const response = await fetch('https://quiz-krida.onrender.com/Create', {
+            const response = await fetch('https://noneditorial-professionally-serena.ngrok-free.dev/Create', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -108,7 +106,6 @@ const CreatePage = () => {
 
     const handleAISynthesis = async () => {
         if (!quizInfo.quizTitle) return toast.error("Title required for AI generation");
-
         setIsSynthesizing(true);
         const toastId = toast.loading("AI is generating questions...");
 
@@ -125,31 +122,38 @@ const CreatePage = () => {
             });
 
             const data = await response.json();
-
+            
             const aiQuestions = data.map((q) => {
-                // 1. Create a map of the options and their correctness
-                const options = [
-                    { text: q.opt1, isCorrect: q.correctOpt === 'opt1' },
-                    { text: q.opt2, isCorrect: q.correctOpt === 'opt2' },
-                    { text: q.opt3, isCorrect: q.correctOpt === 'opt3' },
-                    { text: q.opt4, isCorrect: q.correctOpt === 'opt4' }
-                ];
-
-                // 2. Shuffle options
-                const shuffled = [...options].sort(() => Math.random() - 0.5);
-
-                const letters = ['a', 'b', 'c', 'd'];
-                let correctIdx = shuffled.findIndex(opt => opt.isCorrect);
-                if (correctIdx === -1) correctIdx = 0;
+                // LOGIC FOR 5TH FIELD (CORRECT OPTION MAPPING)
+                let detectedCorrect = "";
+                
+                // 1. First, check if the AI returned a string that matches one of the options exactly
+                if (q.correctOpt === q.opt1) detectedCorrect = "a";
+                else if (q.correctOpt === q.opt2) detectedCorrect = "b";
+                else if (q.correctOpt === q.opt3) detectedCorrect = "c";
+                else if (q.correctOpt === q.opt4) detectedCorrect = "d";
+                
+                // 2. Fallback: If no string match, try to parse index numbers (e.g., "opt1" or "1")
+                if (!detectedCorrect) {
+                    const rawCorrect = String(q.correctOpt).toLowerCase();
+                    const letters = ['a', 'b', 'c', 'd'];
+                    
+                    if (rawCorrect.includes('opt')) {
+                        const num = rawCorrect.replace(/\D/g, '');
+                        detectedCorrect = letters[parseInt(num) - 1];
+                    } else if (!isNaN(rawCorrect) && rawCorrect !== "") {
+                        detectedCorrect = letters[parseInt(rawCorrect) - 1];
+                    }
+                }
 
                 return {
                     quizId: quizInfo.quizId,
                     question: q.question,
-                    a: shuffled[0].text,
-                    b: shuffled[1].text,
-                    c: shuffled[2].text,
-                    d: shuffled[3].text,
-                    correct: letters[correctIdx]
+                    a: q.opt1,
+                    b: q.opt2,
+                    c: q.opt3,
+                    d: q.opt4,
+                    correct: detectedCorrect || "a" // The 5th field is now auto-populated
                 };
             });
 
@@ -157,6 +161,7 @@ const CreatePage = () => {
             setCurrentSlide(0);
             toast.success("AI Generation Complete!", { id: toastId });
         } catch (error) {
+            console.error("AI Error:", error);
             toast.error("AI Service Unavailable", { id: toastId });
         } finally {
             setIsSynthesizing(false);
@@ -164,7 +169,9 @@ const CreatePage = () => {
     };
 
     const handlePublish = async () => {
-        if (questions.some(q => !q.question)) return toast.error("Some questions are empty");
+        if (questions.some(q => !q.question || !q.correct)) {
+            return toast.error("Ensure all questions have text and a correct option assigned");
+        }
 
         setLoading(true);
         const payload = questions.map((q) => ({
@@ -178,7 +185,7 @@ const CreatePage = () => {
         }));
 
         try {
-            const response = await fetch('https://quiz-krida.onrender.com/Questions', {
+            const response = await fetch('https://noneditorial-professionally-serena.ngrok-free.dev/Questions', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -195,18 +202,6 @@ const CreatePage = () => {
         }
     };
 
-    const addSlide = () => {
-        setQuestions([...questions, { quizId: quizInfo.quizId, question: "", a: "", b: "", c: "", d: "", correct: "a" }]);
-        setCurrentSlide(questions.length);
-    };
-
-    const removeSlide = (index) => {
-        if (questions.length === 1) return toast.error("You need at least one question");
-        const newQuestions = questions.filter((_, i) => i !== index);
-        setQuestions(newQuestions);
-        setCurrentSlide(Math.max(0, index - 1));
-    };
-
     const updateQuestion = (field, value) => {
         const newQuestions = [...questions];
         newQuestions[currentSlide][field] = value;
@@ -216,12 +211,9 @@ const CreatePage = () => {
     return (
         <PageWrapper>
             <Toaster position="bottom-right" />
-
             <ContentHeader>
-                <div className="header-top">
-                    <div className="status-tag">STEP {phase + 1} // {phase === 0 ? "SETUP" : "QUESTIONS"}</div>
-                    <h2>{phase === 0 ? "CREATE NEW QUIZ" : quizInfo.quizTitle.toUpperCase()}</h2>
-                </div>
+                <div className="status-tag">STEP {phase + 1} // {phase === 0 ? "SETUP" : "QUESTIONS"}</div>
+                <h2>{phase === 0 ? "CREATE NEW QUIZ" : quizInfo.quizTitle.toUpperCase()}</h2>
             </ContentHeader>
 
             <MainContainer>
@@ -283,18 +275,23 @@ const CreatePage = () => {
                                     <span className="counter">{currentSlide + 1} / {questions.length}</span>
                                     <button onClick={() => setCurrentSlide(Math.min(questions.length - 1, currentSlide + 1))} disabled={currentSlide === questions.length - 1}><ChevronRight size={16} /></button>
                                 </div>
-                                <button onClick={() => removeSlide(currentSlide)} className="nav-icon-btn delete"><Trash2 size={18} /></button>
+                                <button onClick={() => {
+                                    if (questions.length === 1) return toast.error("Minimum 1 question required");
+                                    const newQ = questions.filter((_, i) => i !== currentSlide);
+                                    setQuestions(newQ);
+                                    setCurrentSlide(Math.max(0, currentSlide - 1));
+                                }} className="nav-icon-btn delete"><Trash2 size={18} /></button>
                             </NavHeader>
 
                             <SlideCard initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                                 <FormGroup>
                                     <label>QUESTION TEXT</label>
-                                    <textarea className="zolvi-textarea" value={questions[currentSlide].question} onChange={(e) => updateQuestion('question', e.target.value)} placeholder="Type your question here..." />
+                                    <textarea className="zolvi-textarea" value={questions[currentSlide].question} onChange={(e) => updateQuestion('question', e.target.value)} placeholder="Type question..." />
                                 </FormGroup>
 
                                 <OptionsMatrix>
                                     {['a', 'b', 'c', 'd'].map((letter) => (
-                                        <OptionNode key={letter} $active={questions[currentSlide].correct === letter}>
+                                        <OptionNode key={letter}>
                                             <div className="node-prefix">{letter.toUpperCase()}</div>
                                             <input
                                                 type="text"
@@ -303,20 +300,29 @@ const CreatePage = () => {
                                                 onChange={(e) => updateQuestion(letter, e.target.value)}
                                                 placeholder={`Option ${letter.toUpperCase()}...`}
                                             />
-                                            <input
-                                                type="radio"
-                                                name={`correct-opt-${currentSlide}`}
-                                                className="opt-radio"
-                                                checked={questions[currentSlide].correct === letter}
-                                                onChange={() => updateQuestion('correct', letter)}
-                                            />
                                         </OptionNode>
                                     ))}
                                 </OptionsMatrix>
+
+                                <FormGroup style={{ marginTop: '10px', borderTop: `1px solid ${theme.border}`, paddingTop: '15px' }}>
+                                    <label><CheckCircle size={12} color={theme.success} /> ASSIGNED CORRECT OPTION</label>
+                                    <select 
+                                        className="zolvi-input" 
+                                        value={questions[currentSlide].correct} 
+                                        onChange={(e) => updateQuestion('correct', e.target.value)}
+                                        style={{ color: theme.success, fontWeight: 'bold' }}
+                                    >
+                                        <option value="">Select Correct Answer</option>
+                                        <option value="a">OPTION A</option>
+                                        <option value="b">OPTION B</option>
+                                        <option value="c">OPTION C</option>
+                                        <option value="d">OPTION D</option>
+                                    </select>
+                                </FormGroup>
                             </SlideCard>
 
                             <ActionArea>
-                                <SecondaryBtn onClick={addSlide}>+ ADD NEW QUESTION</SecondaryBtn>
+                                <SecondaryBtn onClick={() => setQuestions([...questions, { quizId: quizInfo.quizId, question: "", a: "", b: "", c: "", d: "", correct: "" }])}>+ ADD NEW QUESTION</SecondaryBtn>
                                 <PrimaryBtn onClick={handlePublish} disabled={loading}>
                                     {loading ? <Loader2 className="spin" /> : <>SAVE & PUBLISH <Save size={18} /></>}
                                 </PrimaryBtn>
@@ -329,103 +335,21 @@ const CreatePage = () => {
     );
 };
 
-/* --- STYLES --- */
-
+/* --- STYLES REMAIN THE SAME --- */
 const spin = keyframes` from { transform: rotate(0deg); } to { transform: rotate(360deg); } `;
-
-const PageWrapper = styled.div`
-  min-height: 100vh; background: ${theme.bg}; color: ${theme.text}; padding: 40px 20px;
-  font-family: ${theme.font};
-`;
-
-const ContentHeader = styled.div`
-  max-width: 600px; margin: 0 auto 30px;
-  .status-tag { font-size: 10px; color: ${theme.muted}; letter-spacing: 2px; }
-  h2 { font-size: 1.2rem; margin-top: 5px; letter-spacing: 1px; }
-`;
-
+const PageWrapper = styled.div` min-height: 100vh; background: ${theme.bg}; color: ${theme.text}; padding: 40px 20px; font-family: ${theme.font}; `;
+const ContentHeader = styled.div` max-width: 600px; margin: 0 auto 30px; .status-tag { font-size: 10px; color: ${theme.muted}; letter-spacing: 2px; } h2 { font-size: 1.2rem; margin-top: 5px; letter-spacing: 1px; } `;
 const MainContainer = styled.div` max-width: 600px; margin: 0 auto; `;
-
-const SlideCard = styled(motion.div)`
-  background: ${theme.surface}; border: 1px solid ${theme.border}; padding: 25px;
-  display: flex; flex-direction: column; gap: 20px;
-`;
-
-const FormGroup = styled.div`
-  display: flex; flex-direction: column; gap: 8px;
-  label { font-size: 10px; color: ${theme.muted}; display: flex; align-items: center; gap: 6px; }
-  .zolvi-input, .zolvi-textarea {
-    background: ${theme.bg}; border: 1px solid ${theme.border}; color: ${theme.text}; padding: 12px; font-size: 13px;
-    &:focus { border-color: ${theme.borderActive}; outline: none; }
-  }
-  .zolvi-textarea { min-height: 100px; resize: none; }
-`;
-
-const AIControlBar = styled.div`
-  margin-bottom: 15px;
-  .ai-btn {
-    width: 100%; background: ${theme.bg}; border: 1px dashed ${theme.border}; color: ${theme.text}; padding: 12px;
-    font-size: 10px; font-weight: 900; letter-spacing: 2px; cursor: pointer;
-    display: flex; align-items: center; justify-content: center; gap: 10px;
-    &:hover { border-color: ${theme.success}; color: ${theme.success}; }
-    .spin { animation: ${spin} 1s linear infinite; }
-  }
-`;
-
-const NavHeader = styled.div`
-  display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;
-  .nav-icon-btn { background: transparent; border: 1px solid ${theme.border}; color: ${theme.muted}; padding: 8px; cursor: pointer; &:hover { color: ${theme.text}; border-color: ${theme.borderActive}; } }
-  .slide-nav { display: flex; align-items: center; gap: 10px; .counter { font-size: 12px; font-weight: 900; } button { background: none; border: none; color: ${theme.text}; cursor: pointer; } }
-`;
-
-const OptionsMatrix = styled.div`
-  display: flex; flex-direction: column; gap: 10px;
-`;
-
-const OptionNode = styled.div`
-  display: flex; align-items: center; gap: 10px; background: ${theme.bg}; 
-  /* Highlighting the correct option in Green */
-  border: 1px solid ${props => props.$active ? theme.success : theme.border};
-  padding: 10px;
-  transition: all 0.2s ease;
-
-  .node-prefix { 
-    font-size: 12px; 
-    font-weight: 900; 
-    color: ${props => props.$active ? theme.success : theme.muted}; 
-    width: 20px; 
-  }
-  .opt-input { 
-    flex: 1; background: none; border: none; color: ${theme.text}; font-size: 12px; outline: none; 
-    font-family: inherit;
-  }
-  .opt-radio { 
-    width: 16px; 
-    height: 16px; 
-    accent-color: ${theme.success}; 
-    cursor: pointer; 
-  }
-`;
-
-const BinaryToggle = styled.div`
-  display: flex; gap: 5px;
-  button { flex: 1; background: ${theme.bg}; border: 1px solid ${theme.border}; color: ${theme.muted}; padding: 8px; font-size: 10px; cursor: pointer; &.active { background: ${theme.text}; color: ${theme.bg}; border-color: ${theme.text}; } }
-`;
-
-const PrimaryBtn = styled.button`
-  width: 100%; padding: 15px; background: ${theme.accent}; color: ${theme.bg}; border: none; font-weight: 900; cursor: pointer;
-  display: flex; align-items: center; justify-content: center; gap: 10px;
-  &:disabled { opacity: 0.5; }
-  .spin { animation: ${spin} 1s linear infinite; }
-`;
-
-const SecondaryBtn = styled.button`
-  width: 100%; padding: 15px; background: transparent; border: 1px solid ${theme.border}; color: ${theme.text}; font-size: 12px; cursor: pointer;
-  &:hover { background: #111; }
-`;
-
+const SlideCard = styled(motion.div)` background: ${theme.surface}; border: 1px solid ${theme.border}; padding: 25px; display: flex; flex-direction: column; gap: 20px; `;
+const FormGroup = styled.div` display: flex; flex-direction: column; gap: 8px; label { font-size: 10px; color: ${theme.muted}; display: flex; align-items: center; gap: 6px; } .zolvi-input, .zolvi-textarea { background: ${theme.bg}; border: 1px solid ${theme.border}; color: ${theme.text}; padding: 12px; font-size: 13px; &:focus { border-color: ${theme.borderActive}; outline: none; } } .zolvi-textarea { min-height: 100px; resize: none; } `;
+const AIControlBar = styled.div` margin-bottom: 15px; .ai-btn { width: 100%; background: ${theme.bg}; border: 1px dashed ${theme.border}; color: ${theme.text}; padding: 12px; font-size: 10px; font-weight: 900; letter-spacing: 2px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; &:hover { border-color: ${theme.success}; color: ${theme.success}; } .spin { animation: ${spin} 1s linear infinite; } } `;
+const NavHeader = styled.div` display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; .nav-icon-btn { background: transparent; border: 1px solid ${theme.border}; color: ${theme.muted}; padding: 8px; cursor: pointer; &:hover { color: ${theme.text}; border-color: ${theme.borderActive}; } } .slide-nav { display: flex; align-items: center; gap: 10px; .counter { font-size: 12px; font-weight: 900; } button { background: none; border: none; color: ${theme.text}; cursor: pointer; } } `;
+const OptionsMatrix = styled.div` display: flex; flex-direction: column; gap: 10px; `;
+const OptionNode = styled.div` display: flex; align-items: center; gap: 10px; background: ${theme.bg}; border: 1px solid ${theme.border}; padding: 10px; .node-prefix { font-size: 12px; font-weight: 900; color: ${theme.muted}; width: 20px; } .opt-input { flex: 1; background: none; border: none; color: ${theme.text}; font-size: 12px; outline: none; font-family: inherit; } `;
+const BinaryToggle = styled.div` display: flex; gap: 5px; button { flex: 1; background: ${theme.bg}; border: 1px solid ${theme.border}; color: ${theme.muted}; padding: 8px; font-size: 10px; cursor: pointer; &.active { background: ${theme.text}; color: ${theme.bg}; border-color: ${theme.text}; } } `;
+const PrimaryBtn = styled.button` width: 100%; padding: 15px; background: ${theme.accent}; color: ${theme.bg}; border: none; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; &:disabled { opacity: 0.5; } .spin { animation: ${spin} 1s linear infinite; } `;
+const SecondaryBtn = styled.button` width: 100%; padding: 15px; background: transparent; border: 1px solid ${theme.border}; color: ${theme.text}; font-size: 12px; cursor: pointer; &:hover { background: #111; } `;
 const ActionArea = styled.div` display: flex; gap: 10px; margin-top: 20px; flex-direction: column; `;
-
 const DualGrid = styled.div` display: grid; grid-template-columns: 1fr 1fr; gap: 15px; `;
 
 export default CreatePage;
