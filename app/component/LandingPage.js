@@ -1,18 +1,17 @@
 "use client";
 import React, { useRef, useEffect, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { motion, useScroll, useMotionValue, useSpring } from 'framer-motion';
+import { motion, useScroll, useSpring } from 'framer-motion';
 import {
-    ArrowUpRight, Twitter, Instagram, Github, Zap, Target, TrendingUp
+    ArrowUpRight, Zap, Target, TrendingUp
 } from 'lucide-react';
 import Link from 'next/link';
 import QuickActions from './QuickActions';
 
 const LandingPage = () => {
     const featuresRef = useRef(null);
-    // 1. Set to a static number initially to match Server-Side Rendering
     const [randomUsers, setRandomUsers] = useState(5000);
-    const [isMounted, setIsMounted] = useState(false); 
+    const [isMounted, setIsMounted] = useState(false);
     const { scrollYProgress } = useScroll();
     const scaleProgress = useSpring(scrollYProgress, {
         stiffness: 100,
@@ -21,10 +20,7 @@ const LandingPage = () => {
     });
 
     useEffect(() => {
-        // 2. Set isMounted to true once we are on the client
         setIsMounted(true);
-        
-        // Trigger initial random number immediately on mount
         setRandomUsers(Math.floor(Math.random() * 9000) + 1000);
 
         const interval = setInterval(() => {
@@ -36,10 +32,6 @@ const LandingPage = () => {
     const scrollToFeatures = () => {
         featuresRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
-
-    function getRandomNumber() {
-        return Math.floor(Math.random() * (1500 - 1000 + 1)) + 1000;
-    }
 
     return (
         <PageWrapper>
@@ -97,14 +89,13 @@ const LandingPage = () => {
                     </button>
                 </motion.div>
 
-                <FloatingStats
+                {/* <FloatingStats
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 1.4 }}
                 >
                     <StatItem>
                         <Zap size={16} />
-                        {/* 3. Use isMounted to prevent text mismatch during hydration */}
                         <span>{isMounted ? randomUsers : "5000"} USERS</span>
                     </StatItem>
                     <StatItem>
@@ -115,10 +106,9 @@ const LandingPage = () => {
                         <TrendingUp size={16} />
                         <span>₹5K+ PRIZES</span>
                     </StatItem>
-                </FloatingStats>
+                </FloatingStats> */}
             </HeroSection>
 
-            {/* Rest of your component remains exactly the same... */}
             <ApproachSection ref={featuresRef}>
                 <motion.div
                     className="section-label"
@@ -188,11 +178,11 @@ const LandingPage = () => {
 
                 <WinnerTicker>
                     <div className="ticker-track">
-                        <span>● @Dhiraj_01 won $50 in Weekly Quiz</span>
+                        <span>● @Ketan_06 won $50 in Weekly Quiz</span>
                         <span>● @Alex_Dev just earned 'AI Master' Badge</span>
                         <span>● @Rahul.js won the Science Bowl</span>
-                        <span>● @Dhiraj_01 won $50 in Weekly Quiz</span>
-                        <span>● @Dhiraj_01 won $50 in Weekly Quiz</span>
+                        <span>● @Ketan_06 won $50 in Weekly Quiz</span>
+                        <span>● @Ketan_01 won $50 in Weekly Quiz</span>
                         <span>● @Alex_Dev just earned 'AI Master' Badge</span>
                     </div>
                 </WinnerTicker>
@@ -223,36 +213,26 @@ const LandingPage = () => {
                             <Link href="/services">SERVICES</Link>
                         </div>
                         <div className="nav-group">
-                            <h5>CONNECT</h5>
-                            <a href="mailto:hello@quizkrida.com">GET IN TOUCH</a>
-                            <div className="socials">
-                                <SocialIcon
-                                    as={motion.a}
-                                    href="https://github.com/DhirajB-7"
+                            <h5>DEVELOPERS</h5>
+                            <div className="dev-links">
+                                <DevButton
+                                    href="https://portfolio-alpha-two-xpwkgmpok8.vercel.app/"
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    whileHover={{ scale: 1.2, rotate: 5 }}
+                                    whileHover={{ x: 5 }}
                                 >
-                                    <Github size={18} />
-                                </SocialIcon>
-                                <SocialIcon
-                                    as={motion.a}
-                                    href="https://www.instagram.com/dhiraj_birajdar_77/"
+                                    <span> KETAN(BACKEND)</span>
+                                    <ArrowUpRight size={14} />
+                                </DevButton>
+                                <DevButton
+                                    href="https://my-portfolio-dhiraj-birajdar-77.vercel.app/"
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    whileHover={{ scale: 1.2, rotate: -5 }}
+                                    whileHover={{ x: 5 }}
                                 >
-                                    <Instagram size={18} />
-                                </SocialIcon>
-                                <SocialIcon
-                                    as={motion.a}
-                                    href="https://www.linkedin.com/in/dhiraj-birajdar-b920302aa/"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    whileHover={{ scale: 1.2, rotate: 5 }}
-                                >
-                                    <Twitter size={18} />
-                                </SocialIcon>
+                                    <span>DHIRAJ(FRONTEND)</span>
+                                    <ArrowUpRight size={14} />
+                                </DevButton>
                             </div>
                         </div>
                     </motion.div>
@@ -269,6 +249,7 @@ const LandingPage = () => {
         </PageWrapper>
     );
 };
+
 // --- Animations ---
 const AnimatedWord = ({ children, delay }) => (
     <motion.span
@@ -285,6 +266,7 @@ const AnimatedWord = ({ children, delay }) => (
         {children}
     </motion.span>
 );
+
 const marquee = keyframes`
     0% { transform: translateX(0); }
     100% { transform: translateX(-50%); }
@@ -321,7 +303,6 @@ const ScrollProgress = styled(motion.div)`
     z-index: 9999;
 `;
 
-
 const PageWrapper = styled.div`
     color: #fff;
     min-height: 100vh;
@@ -332,7 +313,6 @@ const PageWrapper = styled.div`
     position: relative;
     overflow-x: hidden;
     
-    /* Grid overlay */
     &::before {
         content: '';
         position: fixed;
@@ -351,13 +331,10 @@ const PageWrapper = styled.div`
 
 const GlitchText = styled(motion.div)`
     position: relative;
-    
     span {
         position: relative;
         display: inline-block;
-        
-        &::before,
-        &::after {
+        &::before, &::after {
             content: attr(data-text);
             position: absolute;
             top: 0;
@@ -365,14 +342,12 @@ const GlitchText = styled(motion.div)`
             width: 100%;
             height: 100%;
         }
-        
         &::before {
             left: 2px;
             text-shadow: -2px 0 #fff;
             clip: rect(24px, 550px, 90px, 0);
             animation: ${glitch} 3s infinite linear alternate-reverse;
         }
-        
         &::after {
             left: -2px;
             text-shadow: -2px 0 #fff;
@@ -394,9 +369,7 @@ const HeroSection = styled(motion.section)`
     flex-direction: column;
     justify-content: center;
 
-    @media (min-width: 768px) {
-        padding: 240px 20px 120px;
-    }
+    @media (min-width: 768px) { padding: 240px 20px 120px; }
 
     .tagline {
         font-size: 0.7rem;
@@ -405,10 +378,7 @@ const HeroSection = styled(motion.section)`
         margin-bottom: 40px;
         text-transform: uppercase;
         font-weight: 900;
-        
-        @media (min-width: 768px) {
-            font-size: 0.85rem;
-        }
+        @media (min-width: 768px) { font-size: 0.85rem; }
     }
 
     h1 {
@@ -418,7 +388,6 @@ const HeroSection = styled(motion.section)`
         letter-spacing: -0.05em;
         margin-bottom: 40px;
         text-transform: uppercase;
-
         .outline-text {
             color: transparent;
             -webkit-text-stroke: 2px #fff;
@@ -434,11 +403,7 @@ const HeroSection = styled(motion.section)`
         line-height: 1.8;
         font-weight: 700;
         letter-spacing: 0.05em;
-        
-        @media (min-width: 768px) {
-            font-size: 1rem;
-            max-width: 700px;
-        }
+        @media (min-width: 768px) { font-size: 1rem; max-width: 700px; }
     }
 
     .hero-btns {
@@ -447,16 +412,10 @@ const HeroSection = styled(motion.section)`
         justify-content: center;
         gap: 20px;
         padding: 0 20px;
-        
-        @media (min-width: 768px) { 
-            flex-direction: row; 
-            gap: 20px; 
-            padding: 0;
-        }
+        @media (min-width: 768px) { flex-direction: row; }
     }
 
-    .brutal-btn-primary,
-    .brutal-btn-outline {
+    .brutal-btn-primary, .brutal-btn-outline {
         padding: 20px 40px;
         font-weight: 900;
         font-size: 0.85rem;
@@ -469,11 +428,7 @@ const HeroSection = styled(motion.section)`
         letter-spacing: 0.1em;
         position: relative;
         overflow: hidden;
-        
-        span {
-            position: relative;
-            z-index: 2;
-        }
+        span { position: relative; z-index: 2; }
     }
 
     .brutal-btn-primary {
@@ -481,7 +436,6 @@ const HeroSection = styled(motion.section)`
         color: #000;
         border: 4px solid #fff;
         text-decoration: none;
-        
         &::before {
             content: '';
             position: absolute;
@@ -493,23 +447,9 @@ const HeroSection = styled(motion.section)`
             transition: left 0.3s ease;
             z-index: 1;
         }
-        
         &:hover {
             color: #fff;
-            
-            &::before {
-                left: 0;
-            }
-            
-            svg {
-                color: #fff;
-            }
-        }
-        
-        svg {
-            position: relative;
-            z-index: 2;
-            transition: color 0.3s ease;
+            &::before { left: 0; }
         }
     }
 
@@ -518,7 +458,6 @@ const HeroSection = styled(motion.section)`
         color: #fff;
         border: 4px solid #fff;
         cursor: pointer;
-        
         &::before {
             content: '';
             position: absolute;
@@ -530,13 +469,9 @@ const HeroSection = styled(motion.section)`
             transition: left 0.3s ease;
             z-index: 1;
         }
-        
         &:hover {
             color: #000;
-            
-            &::before {
-                left: 0;
-            }
+            &::before { left: 0; }
         }
     }
 `;
@@ -547,11 +482,7 @@ const FloatingStats = styled(motion.div)`
     gap: 40px;
     margin-top: 40px;
     flex-wrap: wrap;
-    
-    @media (max-width: 768px) {
-        gap: 20px;
-        margin-top: 60px;
-    }
+    @media (max-width: 768px) { gap: 20px; margin-top: 60px; }
 `;
 
 const StatItem = styled.div`
@@ -562,24 +493,10 @@ const StatItem = styled.div`
     border: 2px solid #fff;
     background: #000;
     animation: ${float} 3s ease-in-out infinite;
-    
-    &:nth-child(2) {
-        animation-delay: 0.5s;
-    }
-    
-    &:nth-child(3) {
-        animation-delay: 1s;
-    }
-    
-    span {
-        font-size: 0.75rem;
-        font-weight: 900;
-        letter-spacing: 0.1em;
-    }
-    
-    svg {
-        animation: ${pulse} 2s ease-in-out infinite;
-    }
+    &:nth-child(2) { animation-delay: 0.5s; }
+    &:nth-child(3) { animation-delay: 1s; }
+    span { font-size: 0.75rem; font-weight: 900; letter-spacing: 0.1em; }
+    svg { animation: ${pulse} 2s ease-in-out infinite; }
 `;
 
 const ApproachSection = styled.section`
@@ -588,11 +505,7 @@ const ApproachSection = styled.section`
     padding: 120px 24px;
     max-width: 1400px;
     margin: 0 auto;
-    
-    @media (min-width: 768px) {
-        padding: 160px 40px;
-    }
-
+    @media (min-width: 768px) { padding: 160px 40px; }
     .section-label {
         font-size: 0.7rem;
         color: #888;
@@ -600,80 +513,20 @@ const ApproachSection = styled.section`
         letter-spacing: 0.5em;
         font-weight: 900;
         text-transform: uppercase;
-        
-        @media (min-width: 768px) { 
-            margin-bottom: 80px;
-            font-size: 0.8rem;
-        }
     }
-
     .approach-grid {
         display: grid;
         grid-template-columns: 1fr;
         gap: 40px;
-        
-        @media (min-width: 768px) { 
-            grid-template-columns: repeat(3, 1fr); 
-            gap: 60px;
-        }
+        @media (min-width: 768px) { grid-template-columns: repeat(3, 1fr); gap: 60px; }
     }
-`;
-
-const ApproachCard = styled(motion.div)`
-    border: 4px solid #fff;
-    padding: 40px;
-    background: #000;
-    position: relative;
-    cursor: pointer;
-    
-    .card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 24px;
-    }
-    
-    .num { 
-        color: #fff; 
-        font-size: 0.8rem; 
-        font-weight: 900;
-        letter-spacing: 0.1em;
-    }
-    
-    .icon {
-        font-size: 2rem;
-    }
-    
-    h3 { 
-        font-size: 1.8rem; 
-        letter-spacing: 0.05em; 
-        margin-bottom: 16px; 
-        font-weight: 900;
-        text-transform: uppercase;
-    }
-    
-    p { 
-        color: #888; 
-        line-height: 1.8; 
-        font-size: 0.85rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
-    
-    .card-border {
-        position: absolute;
-        top: -4px;
-        left: -4px;
-        right: -4px;
-        bottom: -4px;
+    .approach-card {
         border: 4px solid #fff;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-    }
-    
-    &:hover .card-border {
-        opacity: 1;
+        padding: 40px;
+        background: #000;
+        .num { color: #fff; font-size: 0.8rem; font-weight: 900; }
+        h3 { font-size: 1.8rem; margin: 16px 0; font-weight: 900; text-transform: uppercase; }
+        p { color: #888; line-height: 1.8; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; }
     }
 `;
 
@@ -683,10 +536,6 @@ const CardsWrapper = styled(motion.div)`
     max-width: 1400px;
     margin: 0 auto 120px;
     padding: 0 20px;
-    
-    @media (min-width: 768px) { 
-        margin-bottom: 160px; 
-    }
 `;
 
 const StatsSection = styled.section`
@@ -695,35 +544,16 @@ const StatsSection = styled.section`
     padding: 120px 0;
     border-top: 4px solid #fff;
     border-bottom: 4px solid #fff;
-    
-    @media (min-width: 768px) { 
-        padding: 160px 0; 
-    }
-    
     .stats-header {
         text-align: center;
         margin-bottom: 80px;
-        
-        @media (min-width: 768px) { 
-            margin-bottom: 120px; 
-        }
-        
         h2 { 
             font-size: clamp(2rem, 8vw, 5rem); 
-            font-weight: 900;
-            padding: 0 20px;
-            letter-spacing: -0.02em;
-            line-height: 1.1;
+            font-weight: 900; 
             text-transform: uppercase;
-            
-            .gradient { 
-                color: transparent;
-                -webkit-text-stroke: 2px #fff;
-                text-stroke: 2px #fff;
-            }
+            .gradient { color: transparent; -webkit-text-stroke: 2px #fff; }
         }
     }
-
     .stats-grid {
         display: grid;
         grid-template-columns: 1fr;
@@ -731,39 +561,15 @@ const StatsSection = styled.section`
         max-width: 1200px;
         margin: 0 auto 100px;
         padding: 0 20px;
-        
-        @media (min-width: 768px) { 
-            grid-template-columns: repeat(3, 1fr);
-            margin-bottom: 120px;
-            gap: 40px;
-        }
+        @media (min-width: 768px) { grid-template-columns: repeat(3, 1fr); }
     }
-
     .stat-item {
         text-align: center;
         padding: 40px;
         border: 4px solid #fff;
         background: #000;
-        transition: transform 0.2s ease;
-        
-        h4 { 
-            font-size: 4rem; 
-            font-weight: 900; 
-            margin-bottom: 10px;
-            letter-spacing: -0.02em;
-            
-            @media (min-width: 768px) { 
-                font-size: 5rem; 
-            }
-        }
-        
-        p { 
-            color: #888; 
-            text-transform: uppercase; 
-            letter-spacing: 0.2em; 
-            font-size: 0.7rem; 
-            font-weight: 900;
-        }
+        h4 { font-size: 4rem; font-weight: 900; margin-bottom: 10px; }
+        p { color: #888; text-transform: uppercase; letter-spacing: 0.2em; font-size: 0.7rem; font-weight: 900; }
     }
 `;
 
@@ -773,24 +579,12 @@ const WinnerTicker = styled.div`
     padding: 30px 0;
     overflow: hidden;
     background: #000;
-    
     .ticker-track {
         display: flex;
         gap: 80px;
         animation: ${marquee} 40s linear infinite;
         white-space: nowrap;
-        
-        @media (min-width: 768px) { 
-            gap: 120px; 
-        }
-        
-        span { 
-            font-weight: 900; 
-            letter-spacing: 0.1em; 
-            color: #fff; 
-            font-size: 0.85rem;
-            text-transform: uppercase;
-        }
+        span { font-weight: 900; letter-spacing: 0.1em; font-size: 0.85rem; text-transform: uppercase; }
     }
 `;
 
@@ -800,15 +594,8 @@ const Footer = styled.footer`
     background: #000;
     padding: 60px 20px 30px;
     border-top: 4px solid #fff;
-    min-height: 100vh;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    
-    @media (min-width: 768px) { 
-        padding: 140px 40px 50px;
-        min-height: auto;
-    }
 
     .footer-top {
         max-width: 1200px;
@@ -818,125 +605,44 @@ const Footer = styled.footer`
         grid-template-columns: 1fr;
         gap: 50px;
         margin-bottom: 60px;
-        
-        @media (min-width: 1024px) { 
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 100px;
-        }
+        @media (min-width: 1024px) { display: flex; justify-content: space-between; }
     }
 
     .footer-brand {
         max-width: 500px;
-        
         h2 { 
-            font-weight: 900; 
-            letter-spacing: -0.02em; 
-            margin-bottom: 20px; 
-            font-size: 2.5rem;
-            text-transform: uppercase;
-            
-            @media (min-width: 768px) {
-                font-size: 2rem;
-            }
-            
-            span { 
-                color: transparent;
-                -webkit-text-stroke: 1px #fff;
-            } 
+            font-weight: 900; font-size: 2.5rem; text-transform: uppercase;
+            span { color: transparent; -webkit-text-stroke: 1px #fff; } 
         }
-        
-        p { 
-            color: #888; 
-            line-height: 1.8; 
-            font-size: 0.9rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            
-            @media (min-width: 768px) {
-                font-size: 0.85rem;
-            }
-        }
+        p { color: #888; font-size: 0.9rem; font-weight: 700; text-transform: uppercase; }
     }
 
     .footer-nav {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 50px;
-        
-        @media (min-width: 640px) {
-            grid-template-columns: 1fr 1fr;
-            gap: 40px;
-        }
-        
-        @media (min-width: 768px) { 
-            gap: 100px; 
-        }
-        
+        display: flex;
+        gap: 60px;
+        flex-wrap: wrap;
         .nav-group {
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 16px;
+            h5 { color: #888; letter-spacing: 0.3em; font-size: 0.75rem; font-weight: 900; text-transform: uppercase; }
+            a { color: #fff; text-decoration: none; font-size: 0.85rem; font-weight: 900; text-transform: uppercase; transition: 0.2s; }
+            a:hover { transform: translateX(4px); }
             
-            @media (min-width: 768px) {
-                gap: 16px;
-            }
-            
-            h5 { 
-                color: #888; 
-                letter-spacing: 0.3em; 
-                font-size: 0.75rem; 
-                margin-bottom: 8px; 
-                font-weight: 900;
-                text-transform: uppercase;
-                
-                @media (min-width: 768px) {
-                    font-size: 0.7rem;
-                }
-            }
-            
-            a { 
-                color: #fff; 
-                text-decoration: none; 
-                font-size: 1rem; 
-                font-weight: 900;
-                text-transform: uppercase;
-                letter-spacing: 0.05em;
-                transition: all 0.2s;
-                width: fit-content;
-                
-                @media (min-width: 768px) {
-                    font-size: 0.85rem;
-                }
-                
-                &:hover { 
-                    color: #888;
-                    transform: translateX(4px);
-                }
-            }
-            
-            .socials { 
-                display: flex; 
-                gap: 30px; 
-                color: #fff; 
-                margin-top: 8px;
-                
-                @media (min-width: 768px) {
-                    gap: 20px;
-                    margin-top: 12px;
-                }
+            .dev-links {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
             }
         }
     }
 
     .footer-bottom {
         max-width: 1200px;
-        margin: 0 auto;
+        margin: 40px auto 0;
         width: 100%;
         display: flex;
         flex-direction: column;
-        justify-content: space-between;
         align-items: center;
         gap: 20px;
         padding-top: 30px;
@@ -945,54 +651,40 @@ const Footer = styled.footer`
         font-size: 0.7rem;
         font-weight: 900;
         text-transform: uppercase;
-        letter-spacing: 0.1em;
-        margin-top: auto;
-        
-        @media (min-width: 768px) { 
-            flex-direction: row; 
-            padding-top: 50px;
-            gap: 24px;
-        }
-        
-        .legal { 
-            display: flex; 
-            flex-direction: column;
-            gap: 15px;
-            text-align: center;
-            font-weight: 900;
-            
-            @media (min-width: 768px) {
-                flex-direction: row;
-                gap: 30px;
-            }
-            
-            span { 
-                cursor: pointer; 
-                transition: 0.2s; 
-                
-                &:hover { 
-                    color: #fff; 
-                }
-            }
-        }
+        @media (min-width: 768px) { flex-direction: row; justify-content: space-between; }
+        .legal { display: flex; gap: 30px; span:hover { color: #fff; cursor: pointer; } }
     }
 `;
 
-const SocialIcon = styled(motion.div)`
-  background: none;
-  border: 1px solid #222;
-  color: #444;
-  padding: 10px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: 0.3s;
-
-  &:hover {
+const DevButton = styled(motion.a)`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 16px;
+    border: 2px solid #fff;
+    background: transparent;
     color: #fff;
-    border-color: #fff;
-  }
+    text-decoration: none;
+    font-size: 0.7rem;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    width: 220px;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: #898585ff;
+        color: black;
+        
+    }
+
+    svg {
+        transition: transform 0.2s ease;
+    }
+
+    &:hover svg {
+        transform: rotate(45deg);
+    }
 `;
 
 export default LandingPage;
