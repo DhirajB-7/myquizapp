@@ -136,42 +136,58 @@ const CreatePage = () => {
         }
     };
 
-    const handleAISynthesis = async (isLoadMore = false) => {
-        if (!quizInfo.quizTitle) return toast.error("Title required for AI generation");
-        setIsSynthesizing(true);
-        const toastId = toast.loading(isLoadMore ? "Fetching more questions..." : "AI is generating questions...");
+   const handleAISynthesis = async (isLoadMore = false) => {
+    if (!quizInfo.quizTitle) return toast.error("Title required for AI generation");
+    setIsSynthesizing(true);
+    const toastId = toast.loading(isLoadMore ? "Fetching more questions..." : "AI is generating questions...");
 
-        try {
-            const response = await fetch('https://quizbyaiservice-production.up.railway.app/Generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    topic: quizInfo.quizTitle,
-                    count: 10,
-                    difficulty: 'Moderate',
-                    language: 'English'
-                })
+    try {
+        const response = await fetch('https://quizbyaiservice-production.up.railway.app/Generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                topic: quizInfo.quizTitle,
+                count: 10,
+                difficulty: 'Moderate',
+                language: 'English'
+            })
+        });
+
+        const data = await response.json();
+        const newAIQuestions = mapAIResponse(data);
+
+        if (isLoadMore) {
+            // Create a Set of existing question texts (normalized for comparison)
+            const existingQuestions = new Set(
+                questions.map(q => q.question.toLowerCase().trim())
+            );
+
+            // Filter out duplicates
+            const uniqueNewQuestions = newAIQuestions.filter(newQ => {
+                const normalizedQuestion = newQ.question.toLowerCase().trim();
+                return !existingQuestions.has(normalizedQuestion);
             });
 
-            const data = await response.json();
-            const newAIQuestions = mapAIResponse(data);
-
-            if (isLoadMore) {
-                const previousCount = questions.length;
-                setQuestions(prev => [...prev, ...newAIQuestions]);
-                setCurrentSlide(previousCount); // Jump to the first newly added question
-                toast.success(`Added 10 more questions!`, { id: toastId });
-            } else {
-                setQuestions(newAIQuestions);
-                setCurrentSlide(0);
-                toast.success("AI Generation Complete!", { id: toastId });
+            if (uniqueNewQuestions.length === 0) {
+                toast.error("All generated questions are duplicates. Try again.", { id: toastId });
+                return;
             }
-        } catch (error) {
-            toast.error("AI Service Unavailable", { id: toastId });
-        } finally {
-            setIsSynthesizing(false);
+
+            const previousCount = questions.length;
+            setQuestions(prev => [...prev, ...uniqueNewQuestions]);
+            setCurrentSlide(previousCount);
+            toast.success(`Added ${uniqueNewQuestions.length} unique questions!`, { id: toastId });
+        } else {
+            setQuestions(newAIQuestions);
+            setCurrentSlide(0);
+            toast.success("AI Generation Complete!", { id: toastId });
         }
-    };
+    } catch (error) {
+        toast.error("AI Service Unavailable", { id: toastId });
+    } finally {
+        setIsSynthesizing(false);
+    }
+};
 
     const handlePublish = async () => {
         if (questions.some(q => !q.question || !q.correct)) {
@@ -255,8 +271,8 @@ const CreatePage = () => {
 
                             {quizInfo.timeLimit && (
                                 <FormGroup>
-                                    <label><Clock size={12} /> SECONDS PER QUESTION</label>
-                                    <input type="number" className="zolvi-input" value={quizInfo.questionPerMin} onChange={(e) => handleInfoChange('questionPerMin', e.target.value)} placeholder="e.g. 30" />
+                                    <label><Clock size={12} /> MINUTES PER QUESTION</label>
+                                    <input type="number" className="zolvi-input" value={quizInfo.questionPerMin} onChange={(e) => handleInfoChange('questionPerMin', e.target.value)} placeholder="e.g. 1" />
                                 </FormGroup>
                             )}
 
@@ -269,7 +285,7 @@ const CreatePage = () => {
                             <AIControlBar>
                                 <button className="ai-btn" onClick={() => handleAISynthesis(false)} disabled={isSynthesizing}>
                                     {isSynthesizing ? <Loader2 className="spin" size={14} /> : <Cpu size={14} />}
-                                    <span>{isSynthesizing ? "GENERATING..." : "RE-GENERATE ALL WITH AI"}</span>
+                                    <span>{isSynthesizing ? "GENERATING..." : "GENERATE ALL WITH AI"}</span>
                                 </button>
                                 <button className="ai-btn load-more" onClick={() => handleAISynthesis(true)} disabled={isSynthesizing}>
                                     {isSynthesizing ? <Loader2 className="spin" size={14} /> : <Plus size={14} />}

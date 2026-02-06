@@ -1,34 +1,28 @@
 "use client";
-import React, { useState, useEffect } from 'react';
-import styled, { keyframes, css, createGlobalStyle } from 'styled-components'; // Added createGlobalStyle
-import { Zap, Loader2, Trophy, RefreshCcw, User, Hash, CheckCircle2, XCircle, Timer, ChevronRight, ShieldAlert } from 'lucide-react';
+import React, { useState, useEffect, Suspense } from 'react'; // Added Suspense
+import styled, { keyframes, css, createGlobalStyle } from 'styled-components';
+import { Zap, Loader2,EyeOff,MonitorSmartphone, Trophy, RefreshCcw, User, Hash, CheckCircle2,AlertTriangle, XCircle, Timer, ChevronRight, ShieldAlert } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 // 1. GLOBAL PROTECTION STYLES
 const GlobalSecurity = createGlobalStyle`
-  /* Prevent text selection */
   * {
     -webkit-user-select: none;
     -ms-user-select: none;
     user-select: none;
-    -webkit-touch-callout: none; /* Prevents long-press on iOS */
+    -webkit-touch-callout: none;
   }
-
-  /* Hide content if user tries to print or save as PDF */
   @media print {
     body { display: none !important; }
   }
 `;
-// DRM Effect: Moving noise to confuse screen recorders/OCR
-const noiseAnimation = keyframes`
-  0% { transform: translate(0,0); }
-  10% { transform: translate(-1%,-1%); }
-  20% { transform: translate(-2%,1%); }
-  100% { transform: translate(1%,1%); }
-`;
 
-const PlayQuiz = () => {
-    // ... (Your existing state kept exactly as is)
+const PlayQuizContent = () => { // Renamed internal component
+    const searchParams = useSearchParams();
+    const router = useRouter();
+
+    const [hasAcceptedRules, setHasAcceptedRules] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [quizData, setQuizData] = useState(null);
     const [userAnswers, setUserAnswers] = useState({});
@@ -38,52 +32,48 @@ const PlayQuiz = () => {
     const [secondsPerQuestion, setSecondsPerQuestion] = useState(60);
     const [timeLeft, setTimeLeft] = useState(60);
     const [warningCount, setWarningCount] = useState(0);
-
-    // NEW: Security state
     const [screenBlocked, setScreenBlocked] = useState(false);
 
+    // --- FIX: Initialize state with URL param directly ---
     const [joinData, setJoinData] = useState({
         participantName: '',
-        quizId: ''
+        quizId: '' 
     });
-    
 
-    // --- ENHANCED SECURITY LAYER ---
+    // --- FIX: Sync state if URL changes after mount ---
+   useEffect(() => {
+    const qId = searchParams.get('quizId');
+    if (qId) {
+        // We use the functional update to ensure we don't wipe participantName
+        setJoinData(prev => ({
+            ...prev,
+            quizId: qId
+        }));
+        toast.success("ID Captured from URL: " + qId); // Debugging
+    }
+}, [searchParams]);
+
+    // --- SECURITY LAYER ---
     useEffect(() => {
         if (!quizData || isSubmitted) return;
-
         const handleSecurityAlert = () => {
             setScreenBlocked(true);
             toast.error("SECURITY PROTOCOL: SCREEN BLOCKED", { id: 'security-toast' });
             setTimeout(() => window.location.reload(), 1500);
         };
+        const handleSecurityClear = () => setScreenBlocked(false);
 
-        const handleSecurityClear = () => {
-            setScreenBlocked(false);
-        };
-
-        // Detects when window loses focus (Snipping tool active or Phone swipe)
         window.addEventListener('blur', handleSecurityAlert);
         window.addEventListener('focus', handleSecurityClear);
-
-        // Detects mouse leaving the browser (Snipping tool target)
         document.addEventListener('mouseleave', handleSecurityAlert);
         document.addEventListener('mouseenter', handleSecurityClear);
 
         const handleKeyDown = (e) => {
-            // Block PrintScreen, Snipping Tool (Win+Shift+S), and common dev keys
-            if (
-                e.key === 'PrintScreen' ||
-                e.key === 'Snapshot' ||
-                (e.ctrlKey && e.key === 'p') ||
-                (e.metaKey && e.shiftKey && (e.key === 's' || e.key === '4'))
-            ) {
+            if (e.key === 'PrintScreen' || e.key === 'Snapshot' || (e.ctrlKey && e.key === 'p') || (e.metaKey && e.shiftKey && (e.key === 's' || e.key === '4'))) {
                 e.preventDefault();
                 handleSecurityAlert();
-                setTimeout(handleSecurityClear, 3000);
             }
         };
-
         window.addEventListener('keydown', handleKeyDown);
 
         return () => {
@@ -95,16 +85,15 @@ const PlayQuiz = () => {
         };
     }, [quizData, isSubmitted]);
 
-    // --- Your Existing Tab Switching Logic (Kept) ---
+    // --- TAB SWITCH WARNING ---
     useEffect(() => {
         if (!quizData || isSubmitted) return;
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'hidden') {
                 const nextWarning = warningCount + 1;
                 setWarningCount(nextWarning);
-                if (nextWarning === 1) {
-                    toast.error("WARNING 1/2: TAB SWITCHING DETECTED!");
-                } else if (nextWarning >= 2) {
+                if (nextWarning === 1) toast.error("WARNING 1/2: TAB SWITCHING DETECTED!");
+                else if (nextWarning >= 2) {
                     toast.error("FINAL WARNING: TERMINATING.");
                     setTimeout(() => window.location.reload(), 1500);
                 }
@@ -114,13 +103,7 @@ const PlayQuiz = () => {
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
     }, [quizData, isSubmitted, warningCount]);
 
-    // --- Rest of your logic (Timer, Join, Submit) remains UNTOUCHED ---
-    useEffect(() => {
-        const handleContextMenu = (e) => e.preventDefault();
-        document.addEventListener('contextmenu', handleContextMenu);
-        return () => document.removeEventListener('contextmenu', handleContextMenu);
-    }, []);
-
+    // --- TIMER LOGIC ---
     useEffect(() => {
         if (!quizData || isSubmitted || !quizData.quiz?.timer) return;
         if (timeLeft === 0) {
@@ -133,15 +116,15 @@ const PlayQuiz = () => {
 
     const handleNextQuestion = () => {
         const isLastQuestion = currentQuestionIdx === quizData.questions.length - 1;
-        if (isLastQuestion) {
-            handleSubmitExam();
-        } else {
+        if (isLastQuestion) handleSubmitExam();
+        else {
             setCurrentQuestionIdx(prev => prev + 1);
             if (quizData.quiz?.timer) setTimeLeft(secondsPerQuestion);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     };
 
+    // --- JOIN QUIZ & FULLSCREEN ---
     const handleJoinQuiz = async () => {
         if (!joinData.participantName || !joinData.quizId) {
             toast.error("CREDENTIALS REQUIRED");
@@ -155,13 +138,19 @@ const PlayQuiz = () => {
             });
 
             if (!response.ok) throw new Error(`ACCESS DENIED: Quiz inactive.`);
-
             const data = await response.json();
 
             if (!data.questions || data.questions.length === 0) {
                 toast.error("ERROR: THIS QUIZ HAS NO QUESTIONS");
                 setIsLoading(false);
                 return;
+            }
+
+            // TRIGGER FULLSCREEN (Must be inside user click event)
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(() => {
+                    console.log("Fullscreen blocked by browser policy");
+                });
             }
 
             if (data.quiz?.timePerQ !== undefined) {
@@ -185,6 +174,10 @@ const PlayQuiz = () => {
     };
 
     const handleSubmitExam = async () => {
+        if (document.fullscreenElement) {
+            document.exitFullscreen().catch(() => {});
+        }
+
         const questions = quizData.questions;
         let currentScore = 0;
         questions.forEach((q, idx) => {
@@ -218,9 +211,54 @@ const PlayQuiz = () => {
             setIsLoading(false);
         }
     };
-
+   if (!hasAcceptedRules) {
     return (
         <PageContainer>
+            <EntryWrapper style={{ maxWidth: '700px' }}> {/* Wider wrapper for rules */}
+                <StatusTag><ShieldAlert size={12} /> PROTOCOL INITIALIZATION</StatusTag>
+                <ZolviEntryCard>
+                    <Header>
+                        <div className="icon-box"><AlertTriangle size={24} color="orange" /></div>
+                        <div>
+                            <h2>RULES OF ENGAGEMENT</h2>
+                            <p>STRICT ENFORCEMENT ACTIVE</p>
+                        </div>
+                    </Header>
+
+                    <RulesList>
+                        <RuleItem>
+                            <div className="rule-header"><Zap size={14}/> Anti-Cheat</div>
+                            <div className="rule-desc">Tab switching or window resizing triggers immediate disqualification.</div>
+                        </RuleItem>
+
+                        <RuleItem>
+                            <div className="rule-header"><EyeOff size={14}/> Surveillance</div>
+                            <div className="rule-desc">Active monitoring of cursor movements and focus state is enabled.</div>
+                        </RuleItem>
+
+                        <RuleItem>
+                            <div className="rule-header"><MonitorSmartphone size={14}/> Display</div>
+                            <div className="rule-desc">System forces Fullscreen Mode. Exiting will terminate the arena.</div>
+                        </RuleItem>
+
+                        <RuleItem>
+                            <div className="rule-header"><Timer size={14}/> Timing</div>
+                            <div className="rule-desc">Fixed duration per question. No manual submission required for time-out.</div>
+                        </RuleItem>
+                    </RulesList>
+
+                    <EntryButton onClick={() => setHasAcceptedRules(true)} style={{ width: '100%' }}>
+                        INITIALIZE ARENA SESSION
+                    </EntryButton>
+                </ZolviEntryCard>
+            </EntryWrapper>
+        </PageContainer>
+    );
+}
+
+    return (
+        <PageContainer $isBlocked={screenBlocked}>
+            <GlobalSecurity />
             <Toaster toastOptions={{ style: { background: '#0a0a0a', color: '#fff', border: '1px solid #222' } }} />
 
             {!quizData ? (
@@ -301,7 +339,6 @@ const PlayQuiz = () => {
                                             const optValue = q[optKey];
                                             const isSelected = userAnswers[idx] === optValue;
                                             const isCorrect = optValue === q[q.correctOpt];
-
                                             let variant = "default";
                                             if (isSubmitted) {
                                                 if (isCorrect) variant = "correct";
@@ -345,6 +382,12 @@ const PlayQuiz = () => {
     );
 };
 
+// --- FINAL EXPORT WRAPPED IN SUSPENSE ---
+const PlayQuiz = () => (
+    <Suspense fallback={<div>Initializing Arena...</div>}>
+        <PlayQuizContent />
+    </Suspense>
+);
 // --- Animations ---
 const spin = keyframes` from { transform: rotate(0deg); } to { transform: rotate(360deg); } `;
 const fadeIn = keyframes` from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } `;
@@ -373,7 +416,55 @@ const PageContainer = styled.div`
         padding: 60px 40px;
     }
 `;
+const RulesList = styled.div`
+    display: grid;
+    grid-template-columns: 1fr; /* Default mobile: 1 column */
+    gap: 16px;
+    margin: 30px 0;
+    
+    /* Desktop: 2 columns */
+    @media (min-width: 768px) {
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+`;
 
+const RuleItem = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px;
+    background: #0a0a0a;
+    border: 1px solid #1a1a1a;
+    transition: all 0.3s ease;
+
+    &:hover {
+        border-color: #333;
+        background: #0f0f0f;
+        transform: translateY(-2px);
+    }
+
+    .rule-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #fff;
+        font-weight: 700;
+        font-size: 13px;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        
+        svg {
+            color: #fff;
+        }
+    }
+
+    .rule-desc {
+        font-size: 12px;
+        color: #666;
+        line-height: 1.5;
+    }
+`;
 const EntryWrapper = styled.div`
     width: 100%;
     max-width: 440px;
@@ -395,8 +486,13 @@ const StatusTag = styled.div`
 const ZolviEntryCard = styled.div`
     background: #000;
     border: 1px solid #1a1a1a;
-    padding: 30px;
-    @media (min-width: 768px) { padding: 40px; }
+    padding: 24px;
+    width: 100%;
+    /* Desktop adjustments */
+    @media (min-width: 768px) { 
+        padding: 40px; 
+        max-width: 700px; /* Wider to accommodate two columns */
+    }
 `;
 
 const Header = styled.div`

@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useMemo } from 'react';
-import styled, {keyframes} from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   BookOpen, Clock, AlertCircle, Plus, Loader2, Fingerprint, Eye,
@@ -15,7 +15,7 @@ import autoTable from 'jspdf-autotable';
 
 /* --- QR MODAL COMPONENT --- */
 const QRModal = ({ quizId, quizTitle, onClose }) => {
-  const quizLink = `https://myquizapp-psi.vercel.app/play?id=${quizId}`;
+  const quizLink = `http://10.134.120.46:3000/play?quizId=${quizId}`;
 
   const shareToWhatsApp = () => {
     const text = `Join my quiz: *${quizTitle}*\nScan the QR or click the link below to start (Quiz ID: ${quizId}):\n${quizLink}`;
@@ -226,13 +226,14 @@ const EditQuizModule = ({ quizId, onBack, primaryColor, userEmail }) => {
     }
 
     setSaving(true);
+    const isPrivate = quizInfo.status === true || String(quizInfo.status).toLowerCase() === 'true';
     const payload = {
       quiz: {
         quiz: {
           quizId: parseInt(quizId),
           quizTitle: quizInfo.quizTitle,
           duration: parseInt(quizInfo.duration),
-          status: String(quizInfo.status).toLowerCase() === "true",
+          status: isPrivate,
           createdBy: quizInfo.createdBy || userEmail
         },
         questions: questions.map(q => ({
@@ -298,6 +299,16 @@ const EditQuizModule = ({ quizId, onBack, primaryColor, userEmail }) => {
             <div className="field">
               <label>DURATION (MIN)</label>
               <input type="number" value={quizInfo?.duration || ''} onChange={(e) => setQuizInfo({ ...quizInfo, duration: e.target.value })} />
+            </div>
+            <div className="field">
+              <label>VISIBILITY</label>
+              <select
+                value={String(quizInfo?.status)}
+                onChange={(e) => setQuizInfo({ ...quizInfo, status: e.target.value === "true" })}
+              >
+                <option value="true">Private</option>
+                <option value="false">Public</option>
+              </select>
             </div>
           </div>
         </ConfigCard>
@@ -528,7 +539,7 @@ const DeleteConfirmationModal = ({ isOpen, onConfirm, onCancel, title }) => (
           </div>
           <h3>DELETE QUIZ?</h3>
           <p>
-            ARE YOU SURE YOU WANT TO DELETE <strong>"{title}"</strong>? 
+            ARE YOU SURE YOU WANT TO DELETE <strong>"{title}"</strong>?
             <br />THIS ACTION CANNOT BE UNDONE.
           </p>
           <div className="modal-actions">
@@ -556,8 +567,8 @@ const UserDashboard = () => {
   const [viewQRId, setViewQRId] = useState(null);
   const [switchingStatusId, setSwitchingStatusId] = useState(null);
   const [activeMenuId, setActiveMenuId] = useState(null);
-  const [deleteTarget, setDeleteTarget] = useState(null); 
-  
+  const [deleteTarget, setDeleteTarget] = useState(null);
+
   const primaryColor = "#000000";
 
   useEffect(() => {
@@ -602,6 +613,7 @@ const UserDashboard = () => {
 
       if (response.ok) {
         const minutes = await response.json();
+        console.log(minutes);
         setQuizzes(prev => prev.map(q =>
           q.quizId === quizId
             ? { ...q, status: String(q.status) === "true" ? "false" : "true" }
@@ -624,7 +636,7 @@ const UserDashboard = () => {
   const confirmDelete = async () => {
     if (!deleteTarget) return;
     const quizId = deleteTarget.quizId;
-    
+
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/Logged/Delete/${quizId}`, {
         method: 'DELETE', headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' }
@@ -650,8 +662,8 @@ const UserDashboard = () => {
   return (
     <DashboardWrapper>
       <Toaster position="bottom-right" />
-      
-      <DeleteConfirmationModal 
+
+      <DeleteConfirmationModal
         isOpen={!!deleteTarget}
         title={deleteTarget?.quizTitle}
         onCancel={() => setDeleteTarget(null)}
@@ -691,7 +703,7 @@ const UserDashboard = () => {
                 <p>LOGGED IN AS <span className="highlight">{userEmail}</span></p>
               </div>
               <CreateBtn onClick={handleCreateNew} disabled={isCreating}>
-                {isCreating ? <Loader2 size={20} className="spinner" /> : <Plus size={20} />} 
+                {isCreating ? <Loader2 size={20} className="spinner" /> : <Plus size={20} />}
                 <span className="btn-text">{isCreating ? "LOADING..." : "NEW QUIZ"}</span>
               </CreateBtn>
             </header>
@@ -707,7 +719,7 @@ const UserDashboard = () => {
                   <Inbox size={48} />
                   <p>YOU HAVEN'T CREATED ANY QUIZZES YET.</p>
                   <CreateBtn onClick={handleCreateNew} disabled={isCreating}>
-                    {isCreating ? <Loader2 size={20} className="spinner" /> : <Plus size={20} />} 
+                    {isCreating ? <Loader2 size={20} className="spinner" /> : <Plus size={20} />}
                     {isCreating ? "REDIRECTING..." : "CREATE YOUR FIRST QUIZ"}
                   </CreateBtn>
                 </EmptyState>
