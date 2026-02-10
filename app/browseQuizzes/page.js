@@ -46,7 +46,7 @@ const TopicQuizManager = () => {
   const [userAnswers, setUserAnswers] = useState({});
   const [isFinished, setIsFinished] = useState(false);
 
-  const BASE_URL = 'https://quizbyapi.onrender.com/api/v1';
+  const BASE_URL = 'https://quizbyaiservice-production.up.railway.app';
   useEffect(() => {
     const fetchTopics = async () => {
       try {
@@ -206,7 +206,7 @@ const Container = styled.div`
   padding: 40px 16px; 
   color: white; 
   min-height: 100vh;
-background: #1E1E1E;  
+
   @media (min-width: 768px) {
     padding: 80px 40px;
   }

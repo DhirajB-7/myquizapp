@@ -183,7 +183,6 @@ const spin = keyframes` from { transform: rotate(0deg); } to { transform: rotate
 // --- Styled Components ---
 const PageContainer = styled.div`
     min-height: 100vh;
-    background: #1E1E1E;
     color: #fff;
     font-family: 'Inter', sans-serif;
     padding: 20px;
