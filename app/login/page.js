@@ -394,7 +394,7 @@ const StyledWrapper = styled.div`
 
   /* --- Profile Card --- */
   .profile-card {
-    background: #050505;
+    background: #1E1E1E;
     border: 1px solid #1a1a1a;
     padding: 30px;
     text-align: center;
@@ -493,7 +493,7 @@ const StyledWrapper = styled.div`
   .card-face {
     position: absolute; width: 100%; height: 100%;
     backface-visibility: hidden;
-    background: #050505;
+    background: #1E1E1E;
     border: 1px solid #1a1a1a;
     padding: 40px 30px;
     display: flex; flex-direction: column;

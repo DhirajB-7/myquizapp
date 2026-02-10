@@ -196,7 +196,7 @@ const AIGenerator = () => {
                     </StatusSidebar>
                 </GeneratorWrapper>
             ) : (
-                <ResultContainer>
+                <ResultContainer $isSubmitted={isSubmitted}>
                     <ResultHeader>
                         <div className="title-area">
                             <div className={isSubmitted ? "score-badge high-alert" : "success-badge"}>
@@ -206,11 +206,11 @@ const AIGenerator = () => {
                         </div>
                         {isSubmitted && (
                             <GhostButton onClick={() => {
-                                setQuizData(null);          // Clears the quiz questions
-                                setUserAnswers({});         // CLEARS PREVIOUS SELECTIONS
-                                setCurrentQuestionIdx(0);   // RESETS TO FIRST QUESTION
-                                setIsSubmitted(false);      // RESETS SUBMISSION STATE
-                                setScore(0);                // RESETS SCORE
+                                setQuizData(null);
+                                setUserAnswers({});
+                                setCurrentQuestionIdx(0);
+                                setIsSubmitted(false);
+                                setScore(0);
                             }}>
                                 <RefreshCcw size={14} /> SYSTEM_REBOOT
                             </GhostButton>
@@ -223,51 +223,53 @@ const AIGenerator = () => {
                         </TimerWrapper>
                     )}
 
-                    <QuestionGrid>
-                        {quizData.map((q, idx) => {
-                            if (!isSubmitted && idx !== currentQuestionIdx) return null;
-                            return (
-                                <QuestionCard key={idx} $isSubmitted={isSubmitted}>
-                                    <div className="card-header">
-                                        <div className="q-num">NODE_IDX: [0{idx + 1}]</div>
-                                        <div className="q-id">AUTH_ID: {Math.floor(Math.random() * 9000) + 1000}</div>
-                                    </div>
-                                    <h3>{q.question}</h3>
-                                    <div className="options-list">
-                                        {[q.opt1, q.opt2, q.opt3, q.opt4].map((opt, i) => {
-                                            const isSelected = userAnswers[idx] === opt;
-                                            const isCorrect = opt === q.correctOpt;
-                                            let status = "";
-                                            if (isSubmitted) {
-                                                if (isCorrect) status = "correct";
-                                                else if (isSelected) status = "wrong";
-                                            } else if (isSelected) status = "selected";
+                    <QuizContent $isSubmitted={isSubmitted}>
+                        <QuestionGrid>
+                            {quizData.map((q, idx) => {
+                                if (!isSubmitted && idx !== currentQuestionIdx) return null;
+                                return (
+                                    <QuestionCard key={idx} $isSubmitted={isSubmitted}>
+                                        <div className="card-header">
+                                            <div className="q-num">NODE_IDX: [0{idx + 1}]</div>
+                                            <div className="q-id">AUTH_ID: {Math.floor(Math.random() * 9000) + 1000}</div>
+                                        </div>
+                                        <h3>{q.question}</h3>
+                                        <div className="options-list">
+                                            {[q.opt1, q.opt2, q.opt3, q.opt4].map((opt, i) => {
+                                                const isSelected = userAnswers[idx] === opt;
+                                                const isCorrect = opt === q.correctOpt;
+                                                let status = "";
+                                                if (isSubmitted) {
+                                                    if (isCorrect) status = "correct";
+                                                    else if (isSelected) status = "wrong";
+                                                } else if (isSelected) status = "selected";
 
-                                            return (
-                                                <Option
-                                                    key={i}
-                                                    className={status}
-                                                    onClick={() => !isSubmitted && setUserAnswers(prev => ({ ...prev, [idx]: opt }))}
-                                                >
-                                                    <span className="key">{String.fromCharCode(65 + i)}</span>
-                                                    <span className="val">{opt}</span>
-                                                    {status === "correct" && <ShieldCheck size={14} className="status-icon" />}
-                                                </Option>
-                                            );
-                                        })}
-                                    </div>
-                                </QuestionCard>
-                            );
-                        })}
-                    </QuestionGrid>
+                                                return (
+                                                    <Option
+                                                        key={i}
+                                                        className={status}
+                                                        onClick={() => !isSubmitted && setUserAnswers(prev => ({ ...prev, [idx]: opt }))}
+                                                    >
+                                                        <span className="key">{String.fromCharCode(65 + i)}</span>
+                                                        <span className="val">{opt}</span>
+                                                        {status === "correct" && <ShieldCheck size={14} className="status-icon" />}
+                                                    </Option>
+                                                );
+                                            })}
+                                        </div>
+                                    </QuestionCard>
+                                );
+                            })}
+                        </QuestionGrid>
+                    </QuizContent>
 
                     {!isSubmitted && (
-                        <StickyFooter>
+                        <QuizFooter>
                             <SubmitButton onClick={handleNextQuestion}>
                                 {currentQuestionIdx === quizData.length - 1 ? "COMMIT_TO_MEMORY" : "ACCESS_NEXT_NODE"}
                                 <ChevronRight size={18} />
                             </SubmitButton>
-                        </StickyFooter>
+                        </QuizFooter>
                     )}
                 </ResultContainer>
             )}
@@ -282,12 +284,25 @@ const fadeIn = keyframes` from { opacity: 0; transform: translateY(20px); } to {
 const scan = keyframes` 0% { top: 0% } 100% { top: 100% } `;
 
 const PageContainer = styled.div`
-  min-height: 100vh; background: ${theme.bg}; color: ${theme.text};
-  font-family: ${theme.font}; padding: 20px;
-  display: flex; justify-content: center; align-items: flex-start;
-  position: relative; overflow-x: hidden;
+  min-height: 100vh;
+  height: 100vh;
+  background: ${theme.bg};
+  color: ${theme.text};
+  font-family: ${theme.font};
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  padding: 0;
 
-  @media (min-width: 768px) { padding: 60px 40px; }
+  @media (max-width: 767px) {
+    padding: 15px;
+    align-items: flex-start;
+    overflow-y: auto;
+    height: auto;
+    min-height: 100vh;
+  }
 `;
 
 const BackgroundDecor = styled.div`
@@ -304,180 +319,507 @@ const BackgroundDecor = styled.div`
 `;
 
 const GeneratorWrapper = styled.div`
-  display: flex; flex-direction: column; gap: 20px; width: 100%; max-width: 500px; z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  max-width: 500px;
+  z-index: 1;
+
   @media (min-width: 1024px) {
-    flex-direction: row; max-width: 850px; align-items: flex-start;
+    flex-direction: row;
+    max-width: 900px;
+    align-items: center;
+    height: fit-content;
+  }
+
+  @media (max-width: 767px) {
+    margin-top: 20px;
+    margin-bottom: 20px;
   }
 `;
 
 const StatusSidebar = styled.div`
-  display: flex; flex-direction: row; gap: 10px;
-  @media (min-width: 1024px) { flex-direction: column; width: 220px; }
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+
+  @media (min-width: 1024px) {
+    flex-direction: column;
+    width: 220px;
+  }
 `;
 
 const StatusBox = styled.div`
-  flex: 1; background: ${theme.surface}; border: 1px solid ${theme.border};
-  padding: 12px; display: flex; align-items: center; gap: 10px;
-  font-size: 0.65rem; color: ${theme.muted}; font-weight: 900;
-  text-transform: uppercase; letter-spacing: 1px;
+  flex: 1;
+  background: ${theme.surface};
+  border: 1px solid ${theme.border};
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.65rem;
+  color: ${theme.muted};
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 `;
 
 const NoirCard = styled.div`
-  flex: 1; background: ${theme.surface}; border: 1px solid ${theme.border};
-  padding: 30px; animation: ${fadeIn} 0.5s cubic-bezier(0.23, 1, 0.32, 1);
-  position: relative; box-shadow: 20px 20px 0px -5px rgba(0,0,0,1);
-  
-  @media (min-width: 768px) { padding: 50px; }
+  flex: 1;
+  background: ${theme.surface};
+  border: 1px solid ${theme.border};
+  padding: 30px;
+  animation: ${fadeIn} 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+  position: relative;
+  box-shadow: 20px 20px 0px -5px rgba(0,0,0,1);
+
+  @media (min-width: 768px) {
+    padding: 40px;
+  }
 
   &::before {
-    content: ''; position: absolute; top: -1px; left: -1px; width: 20px; height: 20px;
-    border-top: 2px solid ${theme.accent}; border-left: 2px solid ${theme.accent};
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    width: 20px;
+    height: 20px;
+    border-top: 2px solid ${theme.accent};
+    border-left: 2px solid ${theme.accent};
   }
 `;
 
 const BrandIcon = styled.div`
-  margin: 0 auto 20px; color: ${theme.accent}; 
-  background: ${theme.surfaceLighter}; width: 64px; height: 64px;
-  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 20px;
+  color: ${theme.accent};
+  background: ${theme.surfaceLighter};
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   clip-path: polygon(20% 0%, 80% 0%, 100% 20%, 100% 80%, 80% 100%, 20% 100%, 0% 80%, 0% 20%);
 `;
 
 const Header = styled.div`
-  text-align: center; margin-bottom: 40px;
-  .limit-chip { 
-    display: inline-block; font-size: 0.6rem; color: ${theme.cyan}; 
-    background: rgba(0, 240, 255, 0.05); padding: 4px 12px; margin-bottom: 20px;
+  text-align: center;
+  margin-bottom: 30px;
+
+  .limit-chip {
+    display: inline-block;
+    font-size: 0.6rem;
+    color: ${theme.cyan};
+    background: rgba(0, 240, 255, 0.05);
+    padding: 4px 12px;
+    margin-bottom: 20px;
     border: 1px solid rgba(0, 240, 255, 0.2);
   }
-  h2 { font-size: 1.4rem; font-weight: 900; letter-spacing: 3px; margin-bottom: 8px; }
-  p { font-size: 0.7rem; color: ${theme.muted}; }
+
+  h2 {
+    font-size: 1.4rem;
+    font-weight: 900;
+    letter-spacing: 3px;
+    margin-bottom: 8px;
+  }
+
+  p {
+    font-size: 0.7rem;
+    color: ${theme.muted};
+  }
+
+  @media (max-width: 767px) {
+    h2 {
+      font-size: 1.2rem;
+    }
+  }
 `;
 
-const FormGrid = styled.div` display: flex; flex-direction: column; gap: 25px; `;
+const FormGrid = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+`;
 
 const InputGroup = styled.div`
-  display: flex; flex-direction: column; gap: 10px;
-  label { font-size: 0.65rem; color: ${theme.muted}; font-weight: 900; letter-spacing: 1px; }
-  input { 
-    background: #000; border: 1px solid ${theme.border}; padding: 18px; color: #fff; 
-    font-family: inherit; transition: all 0.2s;
-    &:focus { border-color: ${theme.accent}; box-shadow: 0 0 15px rgba(255,255,255,0.05); outline: none; }
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  label {
+    font-size: 0.65rem;
+    color: ${theme.muted};
+    font-weight: 900;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
-  .pill-container { 
-    display: flex; background: ${theme.border}; gap: 1px; border: 1px solid ${theme.border};
+
+  input {
+    background: #000;
+    border: 1px solid ${theme.border};
+    padding: 16px;
+    color: #fff;
+    font-family: inherit;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+
+    &:focus {
+      border-color: ${theme.accent};
+      box-shadow: 0 0 15px rgba(255,255,255,0.05);
+      outline: none;
+    }
+  }
+
+  .pill-container {
+    display: flex;
+    background: ${theme.border};
+    gap: 1px;
+    border: 1px solid ${theme.border};
     overflow: hidden;
   }
 `;
 
 const Pill = styled.button`
-  flex: 1; background: ${p => p.$active ? '#fff' : '#000'};
+  flex: 1;
+  background: ${p => p.$active ? '#fff' : '#000'};
   color: ${p => p.$active ? '#000' : '#fff'};
-  border: none; padding: 14px; font-size: 0.7rem; font-family: inherit; font-weight: 900; 
-  cursor: pointer; transition: all 0.2s;
-  &:hover { background: ${p => p.$active ? '#fff' : theme.surfaceLighter}; }
+  border: none;
+  padding: 12px;
+  font-size: 0.7rem;
+  font-family: inherit;
+  font-weight: 900;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: ${p => p.$active ? '#fff' : theme.surfaceLighter};
+  }
 `;
 
 const PrimaryButton = styled.button`
-  background: #fff; color: #000; border: none; padding: 20px; font-weight: 900; 
-  font-family: inherit; cursor: pointer; letter-spacing: 2px; font-size: 0.8rem;
+  background: #fff;
+  color: #000;
+  border: none;
+  padding: 18px;
+  font-weight: 900;
+  font-family: inherit;
+  cursor: pointer;
+  letter-spacing: 2px;
+  font-size: 0.8rem;
   transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-  display: flex; align-items: center; justify-content: center; gap: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
 
-  &:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,0.5); background: #eee; }
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
-  .spinner { animation: ${spin} 1s linear infinite; }
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+    background: #eee;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .spinner {
+    animation: ${spin} 1s linear infinite;
+  }
 `;
 
-const ResultContainer = styled.div` width: 100%; max-width: 900px; z-index: 1; padding-bottom: 100px; `;
+const ResultContainer = styled.div`
+  width: 100%;
+  max-width: 900px;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  height: ${p => p.$isSubmitted ? 'auto' : '100vh'};
+  max-height: ${p => p.$isSubmitted ? 'none' : '100vh'};
+
+  @media (max-width: 767px) {
+    height: auto;
+    max-height: none;
+    padding-top: 20px;
+    padding-bottom: 20px;
+  }
+
+  @media (min-width: 768px) {
+    padding: ${p => p.$isSubmitted ? '40px 20px' : '20px'};
+  }
+`;
 
 const ResultHeader = styled.div`
-  display: flex; flex-direction: column; gap: 20px; margin-bottom: 40px;
-  @media (min-width: 768px) { flex-direction: row; justify-content: space-between; align-items: flex-end; }
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 20px;
+  flex-shrink: 0;
+
+  @media (min-width: 768px) {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 30px;
+  }
 
   .title-area {
-    .success-badge, .score-badge { 
-      font-size: 0.75rem; font-weight: 900; color: ${theme.cyan}; margin-bottom: 12px;
-      padding-left: 10px; border-left: 3px solid ${theme.cyan};
+    .success-badge, .score-badge {
+      font-size: 0.75rem;
+      font-weight: 900;
+      color: ${theme.cyan};
+      margin-bottom: 12px;
+      padding-left: 10px;
+      border-left: 3px solid ${theme.cyan};
     }
-    .high-alert { color: ${theme.success}; border-color: ${theme.success}; }
-    h2 { font-size: 1.8rem; font-weight: 900; letter-spacing: -0.5px; }
+
+    .high-alert {
+      color: ${theme.success};
+      border-color: ${theme.success};
+    }
+
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+
+      @media (max-width: 767px) {
+        font-size: 1.2rem;
+      }
+    }
   }
 `;
 
-const TimerWrapper = styled.div` 
-  width: 100%; height: 4px; background: ${theme.border}; margin-bottom: 40px;
-  border-radius: 10px; overflow: hidden;
-`;
-const TimerBarFill = styled.div` 
-  height: 100%; width: ${p => p.progress}%; background: ${theme.accent}; 
-  transition: width 1s linear; box-shadow: 0 0 10px ${theme.accent};
+const TimerWrapper = styled.div`
+  width: 100%;
+  height: 4px;
+  background: ${theme.border};
+  margin-bottom: 20px;
+  border-radius: 10px;
+  overflow: hidden;
+  flex-shrink: 0;
 `;
 
-const QuestionGrid = styled.div` display: flex; flex-direction: column; gap: 30px; `;
+const TimerBarFill = styled.div`
+  height: 100%;
+  width: ${p => p.progress}%;
+  background: ${theme.accent};
+  transition: width 1s linear;
+  box-shadow: 0 0 10px ${theme.accent};
+`;
+
+const QuizContent = styled.div`
+  flex: 1;
+  overflow-y: ${p => p.$isSubmitted ? 'visible' : 'auto'};
+  overflow-x: hidden;
+  min-height: 0;
+
+  @media (max-width: 767px) {
+    overflow-y: visible;
+  }
+
+  /* Custom scrollbar for desktop */
+  @media (min-width: 768px) {
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: ${theme.surface};
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: ${theme.border};
+      border-radius: 3px;
+
+      &:hover {
+        background: ${theme.muted};
+      }
+    }
+  }
+`;
+
+const QuestionGrid = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+
+  @media (max-width: 767px) {
+    gap: 15px;
+  }
+`;
 
 const QuestionCard = styled.div`
-  background: ${theme.surface}; border: 1px solid ${theme.border}; padding: 30px;
+  background: ${theme.surface};
+  border: 1px solid ${theme.border};
+  padding: 25px;
   animation: ${fadeIn} 0.5s ease;
 
-  .card-header {
-    display: flex; justify-content: space-between; margin-bottom: 25px;
-    padding-bottom: 15px; border-bottom: 1px solid ${theme.border};
-    .q-num, .q-id { font-size: 0.65rem; color: ${theme.muted}; font-weight: 700; }
+  @media (max-width: 767px) {
+    padding: 20px;
   }
-  h3 { font-size: 1.2rem; line-height: 1.5; margin-bottom: 35px; color: ${theme.text}; font-weight: 500; }
-  
-  .options-list { 
-    display: grid; grid-template-columns: 1fr; gap: 12px; 
-    @media (min-width: 768px) { grid-template-columns: 1fr 1fr; }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid ${theme.border};
+
+    .q-num, .q-id {
+      font-size: 0.65rem;
+      color: ${theme.muted};
+      font-weight: 700;
+    }
+  }
+
+  h3 {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    margin-bottom: 25px;
+    color: ${theme.text};
+    font-weight: 500;
+
+    @media (max-width: 767px) {
+      font-size: 1rem;
+      margin-bottom: 20px;
+    }
+  }
+
+  .options-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+
+    @media (min-width: 768px) {
+      grid-template-columns: 1fr 1fr;
+    }
   }
 `;
 
 const Option = styled.div`
-  padding: 20px; border: 1px solid ${theme.border}; font-size: 0.85rem; cursor: pointer;
-  display: flex; align-items: center; gap: 15px; transition: all 0.2s;
-  background: #000; position: relative;
+  padding: 16px;
+  border: 1px solid ${theme.border};
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.2s;
+  background: #000;
+  position: relative;
 
-  .key { 
-    font-size: 0.65rem; font-weight: 900; color: ${theme.muted}; 
-    width: 24px; height: 24px; border: 1px solid ${theme.border};
-    display: flex; align-items: center; justify-content: center;
+  @media (max-width: 767px) {
+    padding: 14px;
+    font-size: 0.8rem;
   }
 
-  &:hover { border-color: ${theme.muted}; background: ${theme.surfaceLighter}; }
-  
-  &.selected { border-color: ${theme.accent}; background: rgba(255,255,255,0.05); }
-  
-  &.correct { 
-    border-color: ${theme.success}; color: ${theme.success}; 
-    background: rgba(0, 255, 65, 0.05); font-weight: 900;
-    .key { border-color: ${theme.success}; color: ${theme.success}; }
+  .key {
+    font-size: 0.65rem;
+    font-weight: 900;
+    color: ${theme.muted};
+    width: 24px;
+    height: 24px;
+    border: 1px solid ${theme.border};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
   }
-  
-  &.wrong { 
-    border-color: ${theme.danger}; color: ${theme.danger};
+
+  .val {
+    flex: 1;
+  }
+
+  &:hover {
+    border-color: ${theme.muted};
+    background: ${theme.surfaceLighter};
+  }
+
+  &.selected {
+    border-color: ${theme.accent};
+    background: rgba(255,255,255,0.05);
+  }
+
+  &.correct {
+    border-color: ${theme.success};
+    color: ${theme.success};
+    background: rgba(0, 255, 65, 0.05);
+    font-weight: 900;
+
+    .key {
+      border-color: ${theme.success};
+      color: ${theme.success};
+    }
+  }
+
+  &.wrong {
+    border-color: ${theme.danger};
+    color: ${theme.danger};
     background: rgba(255, 68, 68, 0.05);
-    .key { border-color: ${theme.danger}; color: ${theme.danger}; }
+
+    .key {
+      border-color: ${theme.danger};
+      color: ${theme.danger};
+    }
   }
 
-  .status-icon { margin-left: auto; }
+  .status-icon {
+    margin-left: auto;
+    flex-shrink: 0;
+  }
 `;
 
-const StickyFooter = styled.div`
-  position: fixed; bottom: 0; left: 0; width: 100%; padding: 20px;
-  background: linear-gradient(to top, #000 80%, transparent); 
-  display: flex; justify-content: center; z-index: 10;
+const QuizFooter = styled.div`
+  padding-top: 20px;
+  flex-shrink: 0;
+
+  @media (max-width: 767px) {
+    padding-top: 15px;
+    padding-bottom: 20px;
+  }
 `;
 
-const SubmitButton = styled(PrimaryButton)` 
-  width: 100%; max-width: 500px;
+const SubmitButton = styled(PrimaryButton)`
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
   clip-path: polygon(0 0, 95% 0, 100% 30%, 100% 100%, 5% 100%, 0 70%);
+
+  @media (max-width: 767px) {
+    max-width: 100%;
+    padding: 16px;
+    font-size: 0.75rem;
+  }
 `;
 
 const GhostButton = styled.button`
-  background: transparent; color: #fff; border: 1px solid ${theme.border}; padding: 12px 24px;
-  font-family: inherit; font-size: 0.7rem; font-weight: 900; cursor: pointer; 
-  display: flex; align-items: center; gap: 10px; transition: all 0.2s;
-  &:hover { background: #fff; color: #000; }
+  background: transparent;
+  color: #fff;
+  border: 1px solid ${theme.border};
+  padding: 12px 24px;
+  font-family: inherit;
+  font-size: 0.7rem;
+  font-weight: 900;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #fff;
+    color: #000;
+  }
+
+  @media (max-width: 767px) {
+    padding: 10px 16px;
+    font-size: 0.65rem;
+    width: 100%;
+    justify-content: center;
+  }
 `;
 
 export default AIGenerator;

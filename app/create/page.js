@@ -142,7 +142,7 @@ const CreatePage = () => {
     const toastId = toast.loading(isLoadMore ? "Fetching more questions..." : "AI is generating questions...");
 
     try {
-        const response = await fetch('https://quizbyaiservice-production.up.railway.app/Generate', {
+        const response = await fetch('https://quizbyapi.onrender.com/api/v1', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -365,7 +365,7 @@ const spin = keyframes` from { transform: rotate(0deg); } to { transform: rotate
 const PageWrapper = styled.div` min-height: 100vh; background: ${theme.bg}; color: ${theme.text}; padding: 40px 20px; font-family: ${theme.font}; `;
 const ContentHeader = styled.div` max-width: 600px; margin: 0 auto 30px; .status-tag { font-size: 10px; color: ${theme.muted}; letter-spacing: 2px; } h2 { font-size: 1.2rem; margin-top: 5px; letter-spacing: 1px; } `;
 const MainContainer = styled.div` max-width: 600px; margin: 0 auto; `;
-const SlideCard = styled(motion.div)` background: ${theme.surface}; border: 1px solid ${theme.border}; padding: 25px; display: flex; flex-direction: column; gap: 20px; `;
+const SlideCard = styled(motion.div)` background: #1E1E1E;   border: 1px solid ${theme.border}; padding: 25px; display: flex; flex-direction: column; gap: 20px; `;
 const FormGroup = styled.div` display: flex; flex-direction: column; gap: 8px; label { font-size: 10px; color: ${theme.muted}; display: flex; align-items: center; gap: 6px; } .zolvi-input, .zolvi-textarea { background: ${theme.bg}; border: 1px solid ${theme.border}; color: ${theme.text}; padding: 12px; font-size: 13px; &:focus { border-color: ${theme.borderActive}; outline: none; } } .zolvi-textarea { min-height: 100px; resize: none; } `;
 const AIControlBar = styled.div` 
     display: flex; 

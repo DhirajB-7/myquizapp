@@ -206,7 +206,7 @@ const Container = styled.div`
   padding: 40px 16px; 
   color: white; 
   min-height: 100vh;
-
+background: #1E1E1E;  
   @media (min-width: 768px) {
     padding: 80px 40px;
   }

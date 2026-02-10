@@ -227,15 +227,14 @@ const EditQuizModule = ({ quizId, onBack, primaryColor, userEmail }) => {
     }
 
     setSaving(true);
-   
+    const isPrivate = quizInfo.status === true || String(quizInfo.status).toLowerCase() === 'true';
     const payload = {
       quiz: {
         quiz: {
           quizId: parseInt(quizId),
           quizTitle: quizInfo.quizTitle,
           duration: parseInt(quizInfo.duration),
-          status: quizInfo.status,
-          isPrivate: quizInfo.isPrivate,
+          isPrivate:quizInfo.isPrivate || isPrivate,
           createdBy: quizInfo.createdBy || userEmail
         },
         questions: questions.map(q => ({
@@ -251,7 +250,7 @@ const EditQuizModule = ({ quizId, onBack, primaryColor, userEmail }) => {
       },
       questionNos: deletedQnos
     };
-
+console.log("Payload for save:", payload);
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/Logged/Edit`, {
         method: 'PUT',
@@ -305,7 +304,7 @@ const EditQuizModule = ({ quizId, onBack, primaryColor, userEmail }) => {
             <div className="field">
               <label>VISIBILITY</label>
               <select
-                value={String(quizInfo?.isPrivate)}
+                value={String(quizInfo?.isPrivate || quizInfo?.status || false  )}
                 onChange={(e) => setQuizInfo({ ...quizInfo, isPrivate: e.target.value === "true" })}
               >
                 <option value="true">Private</option>

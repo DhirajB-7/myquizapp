@@ -107,7 +107,7 @@ const expandWidth = keyframes`
 const Wrapper = styled.div`
   width: 100%;
   padding: 40px 20px;
-  background: #000;
+  background: #1E1E1E;
   
   @media (min-width: 768px) { 
     padding: 80px 40px; 

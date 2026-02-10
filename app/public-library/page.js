@@ -32,7 +32,7 @@ const PublicQuizzes = () => {
     }, []);
 
     const handleShareWhatsApp = (quizId, title) => {
-        const url = `https://myquizapp-psi.vercel.app/play?id=${quizId}`;
+        const url = `https://quizkrida.vercel.app/play?quizId=${quizId}`;
         const text = `⚡ CHALLENGE: Play "${title}" in the Arena: ${url}`;
         window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
     };
@@ -183,7 +183,7 @@ const spin = keyframes` from { transform: rotate(0deg); } to { transform: rotate
 // --- Styled Components ---
 const PageContainer = styled.div`
     min-height: 100vh;
-    background: #000;
+    background: #1E1E1E;
     color: #fff;
     font-family: 'Inter', sans-serif;
     padding: 20px;

@@ -395,7 +395,7 @@ const fadeIn = keyframes` from { opacity: 0; transform: translateY(10px); } to {
 // --- Responsive Styled Components ---
 const PageContainer = styled.div`
     min-height: 100vh;
-    background: #050505;
+    background: #1E1E1E;
     color: #fff;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     display: flex;
