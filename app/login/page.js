@@ -1136,6 +1136,7 @@ const StyledWrapper = styled.div`
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   padding: 20px;
   position: relative;
+  overflow-y: auto;
 
   .spinner-icon { 
     animation: ${spin} 1s linear infinite; 
@@ -1146,6 +1147,7 @@ const StyledWrapper = styled.div`
     max-width: 480px; 
     position: relative;
     z-index: 2;
+    margin:auto;
   }
 `;
 
@@ -1410,6 +1412,7 @@ const ProfileCard = styled.div`
 const AuthContainer = styled.div`
   perspective: 1500px;
   animation: ${fadeIn} 0.5s ease;
+  width: 100%;
 
   .toggle-container {
     display: flex;
@@ -1496,10 +1499,11 @@ const AuthContainer = styled.div`
     }
   }
 
-  .flip-card__inner {
+ .flip-card__inner {
     position: relative;
     width: 100%;
-    min-height: 580px;
+    /* Changed from fixed min-height to allow flexibility */
+    min-height: 550px; 
     transition: transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
     transform-style: preserve-3d;
     
@@ -1510,7 +1514,9 @@ const AuthContainer = styled.div`
 
   @media (max-width: 480px) {
     .flip-card__inner {
-      min-height: 600px;
+      /* This is the key fix for the missing button */
+      min-height: 620px; 
+      height: auto;
     }
   }
 `;
@@ -1530,6 +1536,27 @@ const CardFace = styled.div`
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
   transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
   overflow: hidden;
+
+@media (max-width: 480px) {
+    padding: 25px 20px; /* Slimmer padding on mobile */
+    position: relative; /* Allows content to push height */
+    
+    .form-header {
+      margin-bottom: 20px; /* Less space to save room for button */
+      
+      h3 { font-size: 1.5rem; }
+      .icon-wrapper { padding: 12px; margin-top: 0; }
+    }
+
+    .input-group {
+      margin-bottom: 12px; /* Tighter spacing */
+    }
+    
+    .main-btn {
+      padding: 14px 20px; /* Slightly smaller button */
+      margin-top: 10px;
+    }
+}
 
   &::before {
     content: '';
