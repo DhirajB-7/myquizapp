@@ -124,7 +124,7 @@ const Form = () => {
 
     const handleResendCode = async () => {
         if (timer > 0) return;
-        
+
         setIsSigningUp(true);
         const loadingToast = toast.loading("Resending verification code...");
         try {
@@ -221,7 +221,7 @@ const Form = () => {
 
     const handleDeleteAccount = async () => {
         setDeleteError("");
-        
+
         if (!deleteEmailInput) {
             setDeleteError("Email is required");
             return;
@@ -237,9 +237,11 @@ const Form = () => {
 
         try {
             const token = localStorage.getItem("token");
+
+            // 1. Your existing internal API call
             const res = await fetch("/api/auth/delete", {
                 method: "DELETE",
-                headers: { 
+                headers: {
                     "Content-Type": "application/json",
                     "Authorization": `Bearer ${token}`
                 },
@@ -247,16 +249,45 @@ const Form = () => {
             });
 
             const data = await res.json();
-            
+
             if (!res.ok) {
                 throw new Error(data.message || "Failed to delete account");
             }
 
+            // 2. NEW: The additional GET request to your public base URL
+            // We use backticks to inject the email variable into the path
+            // Add this inside your handleDeleteAccount function
+            try {
+                const token = localStorage.getItem("token");
+
+                // We use a timeout or long fetch because Render's free tier needs time to wake up
+                const jpaResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/Delete/Account/${encodeURIComponent(deleteEmailInput)}`, {
+                    method: "DELETE",
+                    headers: {
+                        "Authorization": `Bearer ${token}`,
+                        "Content-Type": "application/json",
+                        "Accept": "application/json",
+                        // Add this if your friend is using a custom header for security
+                        "X-Requested-With": "XMLHttpRequest"
+                    }
+                });
+
+                if (!jpaResponse.ok) {
+                    console.warn("JPA Backend returned an error, but proceeding with local logout.");
+                }
+
+            } catch (error) {
+                // If Render is "sleeping" or CORS fails, we log it but don't stop the user's logout
+                console.error("Could not reach the JPA backend on Render:", error);
+            }
+            // 3. Success handling
             toast.success("Account deleted successfully", { id: loadingToast });
+
             localStorage.clear();
             setIsAuth(false);
             setShowDeleteModal(false);
             setDeleteEmailInput("");
+
             setTimeout(() => router.push("/"), 1000);
         } catch (err) {
             toast.error(err.message, { id: loadingToast });
@@ -278,7 +309,7 @@ const Form = () => {
     const handleForgotPasswordEmail = async (e) => {
         e.preventDefault();
         setForgotPasswordError("");
-        
+
         if (!forgotEmail) return setForgotPasswordError("Email is required");
         if (!isEmailValid(forgotEmail)) return setForgotPasswordError("Please enter a valid email");
 
@@ -305,7 +336,7 @@ const Form = () => {
 
     const handleResendForgotPasswordCode = async () => {
         if (forgotPasswordTimer > 0) return;
-        
+
         setIsResettingPassword(true);
         const loadingToast = toast.loading("Resending reset code...");
         try {
@@ -329,7 +360,7 @@ const Form = () => {
     const handleVerifyForgotPasswordOtp = async (e) => {
         e.preventDefault();
         setForgotPasswordError("");
-        
+
         if (!forgotOtp) return setForgotPasswordError("Please enter the code");
 
         setIsResettingPassword(true);
@@ -355,7 +386,7 @@ const Form = () => {
     const handleResetPassword = async (e) => {
         e.preventDefault();
         setForgotPasswordError("");
-        
+
         if (!newPassword || !confirmNewPassword) return setForgotPasswordError("All fields are required");
         if (!validatePassword(newPassword)) return setForgotPasswordError("Password must be at least 8 characters with uppercase, lowercase, number and special character");
         if (newPassword !== confirmNewPassword) return setForgotPasswordError("Passwords do not match");
@@ -366,10 +397,10 @@ const Form = () => {
             const res = await fetch("/api/auth/reset-password", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ 
-                    email: forgotEmail, 
+                body: JSON.stringify({
+                    email: forgotEmail,
                     otpInput: forgotOtp,
-                    newPassword 
+                    newPassword
                 }),
             });
             const data = await res.json();
@@ -427,13 +458,13 @@ const Form = () => {
                         <CloseButton onClick={handleCloseDeleteModal} disabled={isDeleting}>
                             <X size={20} />
                         </CloseButton>
-                        
+
                         <div className="modal-header">
                             <AlertTriangle size={48} />
                             <h3>Delete Account</h3>
                             <p className="modal-subtitle">This action cannot be undone</p>
                         </div>
-                        
+
                         <div className="modal-body">
                             <div className="warning-box">
                                 <AlertTriangle size={18} />
@@ -442,7 +473,7 @@ const Form = () => {
                                     <p className="warning-text">All your data will be permanently deleted</p>
                                 </div>
                             </div>
-                            
+
                             <div className="current-email-box">
                                 <label>Your current email</label>
                                 <div className="email-display">
@@ -450,7 +481,7 @@ const Form = () => {
                                     <span>{userEmail}</span>
                                 </div>
                             </div>
-                            
+
                             <div className="input-group">
                                 <label>Type your email to confirm</label>
                                 <input
@@ -465,20 +496,20 @@ const Form = () => {
                                     autoFocus
                                 />
                             </div>
-                            
+
                             {deleteError && <p className="error-text">{deleteError}</p>}
                         </div>
-                        
+
                         <div className="modal-actions">
-                            <button 
-                                className="cancel-btn" 
+                            <button
+                                className="cancel-btn"
                                 onClick={handleCloseDeleteModal}
                                 disabled={isDeleting}
                             >
                                 Cancel
                             </button>
-                            <button 
-                                className="delete-btn" 
+                            <button
+                                className="delete-btn"
                                 onClick={handleDeleteAccount}
                                 disabled={isDeleting}
                             >
@@ -506,7 +537,7 @@ const Form = () => {
                         <CloseButton onClick={closeForgotPasswordModal} disabled={isResettingPassword}>
                             <X size={20} />
                         </CloseButton>
-                        
+
                         {forgotPasswordStep === 1 && (
                             <>
                                 <div className="modal-header">
@@ -514,7 +545,7 @@ const Form = () => {
                                     <h3>Reset Password</h3>
                                     <p className="modal-subtitle">Enter your email to receive a reset code</p>
                                 </div>
-                                
+
                                 <form onSubmit={handleForgotPasswordEmail}>
                                     <div className="modal-body">
                                         <div className="input-group">
@@ -533,19 +564,19 @@ const Form = () => {
                                         </div>
                                         {forgotPasswordError && <p className="error-text">{forgotPasswordError}</p>}
                                     </div>
-                                    
+
                                     <div className="modal-actions">
-                                        <button 
+                                        <button
                                             type="button"
-                                            className="cancel-btn" 
+                                            className="cancel-btn"
                                             onClick={closeForgotPasswordModal}
                                             disabled={isResettingPassword}
                                         >
                                             Cancel
                                         </button>
-                                        <button 
+                                        <button
                                             type="submit"
-                                            className="submit-btn" 
+                                            className="submit-btn"
                                             disabled={isResettingPassword}
                                         >
                                             {isResettingPassword ? (
@@ -572,7 +603,7 @@ const Form = () => {
                                     <h3>Verify Code</h3>
                                     <p className="modal-subtitle">Enter code sent to {forgotEmail}</p>
                                 </div>
-                                
+
                                 <form onSubmit={handleVerifyForgotPasswordOtp}>
                                     <div className="modal-body">
                                         <div className="input-group">
@@ -591,14 +622,14 @@ const Form = () => {
                                                 autoFocus
                                             />
                                         </div>
-                                        
+
                                         <div className="otp-footer">
                                             {forgotPasswordTimer > 0 ? (
                                                 <span className="cooldown">Resend code in {forgotPasswordTimer}s</span>
                                             ) : (
-                                                <button 
+                                                <button
                                                     type="button"
-                                                    className="resend-link" 
+                                                    className="resend-link"
                                                     onClick={handleResendForgotPasswordCode}
                                                     disabled={isResettingPassword}
                                                 >
@@ -609,19 +640,19 @@ const Form = () => {
 
                                         {forgotPasswordError && <p className="error-text">{forgotPasswordError}</p>}
                                     </div>
-                                    
+
                                     <div className="modal-actions">
-                                        <button 
+                                        <button
                                             type="button"
-                                            className="cancel-btn" 
+                                            className="cancel-btn"
                                             onClick={() => setForgotPasswordStep(1)}
                                             disabled={isResettingPassword}
                                         >
                                             ← Back
                                         </button>
-                                        <button 
+                                        <button
                                             type="submit"
-                                            className="submit-btn" 
+                                            className="submit-btn"
                                             disabled={isResettingPassword}
                                         >
                                             {isResettingPassword ? (
@@ -648,7 +679,7 @@ const Form = () => {
                                     <h3>New Password</h3>
                                     <p className="modal-subtitle">Create a new password for your account</p>
                                 </div>
-                                
+
                                 <form onSubmit={handleResetPassword}>
                                     <div className="modal-body">
                                         <div className="input-group">
@@ -664,9 +695,9 @@ const Form = () => {
                                                     }}
                                                     disabled={isResettingPassword}
                                                 />
-                                                <button 
-                                                    type="button" 
-                                                    className="eye-btn" 
+                                                <button
+                                                    type="button"
+                                                    className="eye-btn"
                                                     onClick={() => setShowPassword(!showPassword)}
                                                 >
                                                     {showPassword ? <FaEyeSlash /> : <FaEye />}
@@ -687,9 +718,9 @@ const Form = () => {
                                                     }}
                                                     disabled={isResettingPassword}
                                                 />
-                                                <button 
-                                                    type="button" 
-                                                    className="eye-btn" 
+                                                <button
+                                                    type="button"
+                                                    className="eye-btn"
                                                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                                                 >
                                                     {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
@@ -699,19 +730,19 @@ const Form = () => {
 
                                         {forgotPasswordError && <p className="error-text">{forgotPasswordError}</p>}
                                     </div>
-                                    
+
                                     <div className="modal-actions">
-                                        <button 
+                                        <button
                                             type="button"
-                                            className="cancel-btn" 
+                                            className="cancel-btn"
                                             onClick={() => setForgotPasswordStep(2)}
                                             disabled={isResettingPassword}
                                         >
                                             ← Back
                                         </button>
-                                        <button 
+                                        <button
                                             type="submit"
-                                            className="submit-btn" 
+                                            className="submit-btn"
                                             disabled={isResettingPassword}
                                         >
                                             {isResettingPassword ? (
@@ -745,7 +776,7 @@ const Form = () => {
                         <h2>{userName}</h2>
                         <p className="user-email">{userEmail}</p>
                         <div className="status-badge">
-                            <span className="dot"></span> 
+                            <span className="dot"></span>
                             <span>Active</span>
                         </div>
                         <div className="action-area">
@@ -763,14 +794,14 @@ const Form = () => {
                                 )}
                             </button>
                             <button className="main-btn secondary-btn" onClick={handleLogout} disabled={isLoggingOut}>
-                                <LogOut size={18} /> 
+                                <LogOut size={18} />
                                 {isLoggingOut ? "Logging out..." : "Sign Out"}
                             </button>
-                            <button 
-                                className="main-btn danger-btn" 
+                            <button
+                                className="main-btn danger-btn"
                                 onClick={() => setShowDeleteModal(true)}
                             >
-                                <Trash2 size={18} /> 
+                                <Trash2 size={18} />
                                 Delete Account
                             </button>
                         </div>
@@ -778,8 +809,8 @@ const Form = () => {
                 ) : (
                     <AuthContainer>
                         <div className="toggle-container">
-                            <button 
-                                className={`toggle-option ${!isFlipped ? "active" : ""}`} 
+                            <button
+                                className={`toggle-option ${!isFlipped ? "active" : ""}`}
                                 onClick={() => setIsFlipped(false)}
                             >
                                 Sign In
@@ -790,8 +821,8 @@ const Form = () => {
                                     <span className="slider" />
                                 </label>
                             </div>
-                            <button 
-                                className={`toggle-option ${isFlipped ? "active" : ""}`} 
+                            <button
+                                className={`toggle-option ${isFlipped ? "active" : ""}`}
                                 onClick={() => setIsFlipped(true)}
                             >
                                 Sign Up
@@ -804,30 +835,30 @@ const Form = () => {
                                 <div className="form-header">
                                     <div className="icon-wrapper gap-2.5">
                                         <Cpu size={40} />
-                                    
-                                    <h3>  Welcome Back</h3>
+
+                                        <h3>  Welcome Back</h3>
                                     </div>
                                     <p className="subtitle">Sign in to your account</p>
                                 </div>
                                 <form onSubmit={handleLoginSubmit} className="form-content">
                                     <div className="input-group">
                                         <label>
-                                            <Mail size={14} /> 
+                                            <Mail size={14} />
                                             Email Address
                                         </label>
                                         <input
                                             type="email"
                                             placeholder="you@example.com"
                                             value={loginData.email}
-                                            onChange={(e) => { 
-                                                setLoginData({ ...loginData, email: e.target.value }); 
-                                                setLoginError(""); 
+                                            onChange={(e) => {
+                                                setLoginData({ ...loginData, email: e.target.value });
+                                                setLoginError("");
                                             }}
                                         />
                                     </div>
                                     <div className="input-group">
                                         <label>
-                                            <Lock size={14} /> 
+                                            <Lock size={14} />
                                             Password
                                         </label>
                                         <div className="password-wrapper">
@@ -835,14 +866,14 @@ const Form = () => {
                                                 type={showPassword ? "text" : "password"}
                                                 placeholder="Enter your password"
                                                 value={loginData.password}
-                                                onChange={(e) => { 
-                                                    setLoginData({ ...loginData, password: e.target.value }); 
-                                                    setLoginError(""); 
+                                                onChange={(e) => {
+                                                    setLoginData({ ...loginData, password: e.target.value });
+                                                    setLoginError("");
                                                 }}
                                             />
-                                            <button 
-                                                type="button" 
-                                                className="eye-btn" 
+                                            <button
+                                                type="button"
+                                                className="eye-btn"
                                                 onClick={() => setShowPassword(!showPassword)}
                                             >
                                                 {showPassword ? <FaEyeSlash /> : <FaEye />}
@@ -850,8 +881,8 @@ const Form = () => {
                                         </div>
                                     </div>
                                     <div className="form-footer-row">
-                                        <span 
-                                            className="forgot-pwd" 
+                                        <span
+                                            className="forgot-pwd"
                                             onClick={() => setShowForgotPassword(true)}
                                         >
                                             Forgot password?
@@ -880,46 +911,46 @@ const Form = () => {
                                     <>
                                         <div className="form-header">
                                             <div className="icon-wrapper">
-                                                <User size={40} />                                            
-                                            <h3>Create Account</h3>
+                                                <User size={40} />
+                                                <h3>Create Account</h3>
                                             </div>
                                             <p className="subtitle">Join us today</p>
                                         </div>
                                         <form onSubmit={handleSignupSubmit} className="form-content">
                                             <div className="input-group">
                                                 <label>
-                                                    <User size={14} /> 
+                                                    <User size={14} />
                                                     Full Name
                                                 </label>
                                                 <input
                                                     type="text"
                                                     placeholder="John Doe"
                                                     value={signupData.name}
-                                                    onChange={(e) => { 
-                                                        setSignupData({ ...signupData, name: e.target.value }); 
-                                                        setSignupError(""); 
+                                                    onChange={(e) => {
+                                                        setSignupData({ ...signupData, name: e.target.value });
+                                                        setSignupError("");
                                                     }}
                                                 />
                                             </div>
                                             <div className="input-group">
                                                 <label>
-                                                    <Mail size={14} /> 
+                                                    <Mail size={14} />
                                                     Email Address
                                                 </label>
                                                 <input
                                                     type="email"
                                                     placeholder="you@example.com"
                                                     value={signupData.email}
-                                                    onChange={(e) => { 
-                                                        setSignupData({ ...signupData, email: e.target.value }); 
-                                                        setSignupError(""); 
+                                                    onChange={(e) => {
+                                                        setSignupData({ ...signupData, email: e.target.value });
+                                                        setSignupError("");
                                                     }}
                                                 />
                                             </div>
                                             <div className="grid-2">
                                                 <div className="input-group">
                                                     <label>
-                                                        <Lock size={14} /> 
+                                                        <Lock size={14} />
                                                         Password
                                                     </label>
                                                     <div className="password-wrapper">
@@ -927,14 +958,14 @@ const Form = () => {
                                                             type={showPassword ? "text" : "password"}
                                                             placeholder="••••••••"
                                                             value={signupData.password}
-                                                            onChange={(e) => { 
-                                                                setSignupData({ ...signupData, password: e.target.value }); 
-                                                                setSignupError(""); 
+                                                            onChange={(e) => {
+                                                                setSignupData({ ...signupData, password: e.target.value });
+                                                                setSignupError("");
                                                             }}
                                                         />
-                                                        <button 
-                                                            type="button" 
-                                                            className="eye-btn" 
+                                                        <button
+                                                            type="button"
+                                                            className="eye-btn"
                                                             onClick={() => setShowPassword(!showPassword)}
                                                         >
                                                             {showPassword ? <FaEyeSlash /> : <FaEye />}
@@ -943,7 +974,7 @@ const Form = () => {
                                                 </div>
                                                 <div className="input-group">
                                                     <label>
-                                                        <CheckCircle size={14} /> 
+                                                        <CheckCircle size={14} />
                                                         Confirm
                                                     </label>
                                                     <div className="password-wrapper">
@@ -951,14 +982,14 @@ const Form = () => {
                                                             type={showConfirmPassword ? "text" : "password"}
                                                             placeholder="••••••••"
                                                             value={confirmPassword}
-                                                            onChange={(e) => { 
-                                                                setConfirmPassword(e.target.value); 
-                                                                setSignupError(""); 
+                                                            onChange={(e) => {
+                                                                setConfirmPassword(e.target.value);
+                                                                setSignupError("");
                                                             }}
                                                         />
-                                                        <button 
-                                                            type="button" 
-                                                            className="eye-btn" 
+                                                        <button
+                                                            type="button"
+                                                            className="eye-btn"
                                                             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                                                         >
                                                             {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
@@ -994,7 +1025,7 @@ const Form = () => {
                                         <form onSubmit={handleVerifyOtp} className="form-content">
                                             <div className="input-group">
                                                 <label>
-                                                    <ShieldCheck size={14} /> 
+                                                    <ShieldCheck size={14} />
                                                     Verification Code
                                                 </label>
                                                 <input
@@ -1024,18 +1055,18 @@ const Form = () => {
                                                 {timer > 0 ? (
                                                     <span className="cooldown">Resend code in {timer}s</span>
                                                 ) : (
-                                                    <button 
+                                                    <button
                                                         type="button"
-                                                        className="resend-link" 
+                                                        className="resend-link"
                                                         onClick={handleResendCode}
                                                         disabled={isSigningUp}
                                                     >
                                                         Resend Code
                                                     </button>
                                                 )}
-                                                <button 
-                                                    type="button" 
-                                                    className="back-link" 
+                                                <button
+                                                    type="button"
+                                                    className="back-link"
                                                     onClick={() => {
                                                         setStep(1);
                                                         setOtpInput("");

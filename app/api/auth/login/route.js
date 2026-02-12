@@ -12,7 +12,7 @@ export async function POST(req) {
     // Find user by email
     const user = await User.findOne({ email });
     if (!user) {
-      return NextResponse.json({ message: "Invalid Email" }, { status: 401 });
+      return NextResponse.json({ message: "User not found with this email" }, { status: 401 });
     }
 
     // Verify password

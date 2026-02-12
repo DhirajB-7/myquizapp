@@ -74,27 +74,56 @@ const ResultModal = ({ quizId, onClose }) => {
     fetchResults();
   }, [quizId]);
 
-  const downloadPDF = () => {
-    if (results.length === 0) return;
-    const doc = new jsPDF();
-    doc.text(`Quiz Results - ID: ${quizId}`, 14, 15);
-    const tableColumn = ["Student Name", "Score", "Total", "Percentage"];
-    const tableRows = results.map(res => [
-      res.name,
-      res.score,
-      res.outOf,
-      `${((res.score / res.outOf) * 100).toFixed(1)}%`
-    ]);
+  const downloadPDF = async () => {
+  if (results.length === 0) return;
 
-    autoTable(doc, {
-      head: [tableColumn],
-      body: tableRows,
-      startY: 20,
-      theme: 'grid',
-      headStyles: { fillColor: [0, 0, 0] }
+  // 1. Generate and Save PDF (Same as before)
+  const doc = new jsPDF();
+  doc.setFontSize(16);
+  doc.text(`Quiz Results - ID: ${quizId}`, 14, 15);
+
+  const tableColumn = ["Student Name", "Score", "Total", "Percentage"];
+  const tableRows = results.map(res => [
+    res.name,
+    res.score,
+    res.outOf,
+    `${((res.score / res.outOf) * 100).toFixed(1)}%`
+  ]);
+
+  autoTable(doc, {
+    head: [tableColumn],
+    body: tableRows,
+    startY: 20,
+    theme: 'grid',
+    headStyles: { fillColor: [0, 0, 0] }
+  });
+
+  doc.save(`Quiz_Result_${quizId}.pdf`);
+
+  // 2. NEW: Delete the data from the server so it can't be fetched again
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/Delete/Result/${quizId}`, {
+      method: 'DELETE', // Change this to DELETE
+      headers: { 
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true' 
+      }
     });
-    doc.save(`Quiz_Result_${quizId}.pdf`);
-  };
+
+    if (response.ok) {
+      // 3. Clear UI state only AFTER server confirms deletion
+      setResults([]);
+      toast.success("PDF Downloaded & Server records cleared.");
+    } else {
+      // If server delete fails, we still clear UI for this session
+      setResults([]);
+      toast.error("Downloaded, but server failed to clear data.");
+    }
+  } catch (err) {
+    console.error("Cleanup error:", err);
+    setResults([]);
+  }
+};
 
   return (
     <ModalOverlay initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -103,7 +132,7 @@ const ResultModal = ({ quizId, onClose }) => {
           <h3><Trophy size={20} /> STUDENT RESULTS</h3>
           <div style={{ display: 'flex', gap: '10px' }}>
             {results.length > 0 && (
-              <DownloadBtn onClick={downloadPDF} title="Download PDF">
+              <DownloadBtn onClick={downloadPDF} title="Exam Result PDF">
                 <Download size={18} />
               </DownloadBtn>
             )}
@@ -234,7 +263,7 @@ const EditQuizModule = ({ quizId, onBack, primaryColor, userEmail }) => {
           quizId: parseInt(quizId),
           quizTitle: quizInfo.quizTitle,
           duration: parseInt(quizInfo.duration),
-          isPrivate:quizInfo.isPrivate || isPrivate,
+          isPrivate: quizInfo.isPrivate || isPrivate,
           createdBy: quizInfo.createdBy || userEmail
         },
         questions: questions.map(q => ({
@@ -250,7 +279,7 @@ const EditQuizModule = ({ quizId, onBack, primaryColor, userEmail }) => {
       },
       questionNos: deletedQnos
     };
-console.log("Payload for save:", payload);
+    console.log("Payload for save:", payload);
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/Logged/Edit`, {
         method: 'PUT',
@@ -304,7 +333,7 @@ console.log("Payload for save:", payload);
             <div className="field">
               <label>VISIBILITY</label>
               <select
-                value={String(quizInfo?.isPrivate || quizInfo?.status || false  )}
+                value={String(quizInfo?.isPrivate || quizInfo?.status || false)}
                 onChange={(e) => setQuizInfo({ ...quizInfo, isPrivate: e.target.value === "true" })}
               >
                 <option value="true">Private</option>
@@ -625,7 +654,7 @@ const UserDashboard = () => {
           toast.success("Quiz Deactivated!");
         } else if (minutes > 0) {
           toast.success(`Quiz Activated for ${minutes} Minutes`);
-        } 
+        }
       }
     } catch (err) {
       toast.error("Network error");
@@ -995,25 +1024,25 @@ const StatusBadge = styled.button`
   font-family: 'JetBrains Mono', monospace;
 
   /* --- Dynamic Colors based on $isActive --- */
-  background: ${props => props.$isActive 
+  background: ${props => props.$isActive
     ? 'rgba(255, 0, 51, 0.05)'  // Dark Red glow
     : 'rgba(0, 255, 65, 0.05)'  // Dark Green glow
   };
   
   color: ${props => props.$isActive ? '#ff0033' : '#00ff41'};
   
-  border: 1px solid ${props => props.$isActive 
-    ? 'rgba(255, 0, 51, 0.3)' 
+  border: 1px solid ${props => props.$isActive
+    ? 'rgba(255, 0, 51, 0.3)'
     : 'rgba(0, 255, 65, 0.3)'
   };
 
   /* --- Hover States (Brutalist Lift) --- */
   &:hover:not(:disabled) {
     transform: translateY(-3px);
-    background: ${props => props.$isActive 
-      ? 'rgba(255, 0, 51, 0.1)' 
-      : 'rgba(0, 255, 65, 0.1)'
-    };
+    background: ${props => props.$isActive
+    ? 'rgba(255, 0, 51, 0.1)'
+    : 'rgba(0, 255, 65, 0.1)'
+  };
     border-color: ${props => props.$isActive ? '#ff0033' : '#00ff41'};
     box-shadow: 0 10px 20px rgba(0,0,0,0.4);
   }

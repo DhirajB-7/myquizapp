@@ -5,12 +5,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Play, User, Clock, Share2, QrCode, X, Ghost, Loader2, Plus, Zap, ArrowRight, Activity, ShieldCheck } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import toast, { Toaster } from 'react-hot-toast';
-
+import { useRouter } from 'next/navigation';
 const PublicQuizzes = () => {
     const [quizzes, setQuizzes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedQR, setSelectedQR] = useState(null);
-
+    const router = useRouter();
     const fetchQuizzes = async (isInitial = false) => {
         try {
             const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/Public`, {
@@ -110,7 +110,7 @@ const PublicQuizzes = () => {
                                 </CardMain>
 
                                 <CardActions>
-                                    <PlayBtn onClick={() => window.location.href = `/play/quizId=${quiz.quizId}`}>
+                                    <PlayBtn onClick={() => router.push(`/play?quizId=${quiz.quizId}`)}>
                                         INITIALIZE <ArrowRight size={16} />
                                     </PlayBtn>
                                     <ShareBtn onClick={() => handleShareWhatsApp(quiz.quizId, quiz.quizTitle)}>
