@@ -264,6 +264,28 @@ const Form = () => {
         } finally {
             setIsDeleting(false);
         }
+        try {
+              const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/Delete/Account/${deleteEmailInput}`, {
+                method: 'DELETE', // Change this to DELETE
+                headers: {
+                  'Content-Type': 'application/json',
+                  'ngrok-skip-browser-warning': 'true'
+                }
+              });
+        
+              if (response.ok) {
+                // 3. Clear UI state only AFTER server confirms deletion
+            
+                toast.success(" Account deleted successfully.");
+              } else {
+                // If server delete fails, we still clear UI for this session
+               
+                toast.error("Server failed to clear data.");
+              }
+            } catch (err) {
+              console.error("Cleanup error:", err);
+              setResults([]);
+            }
     };
 
     const handleCloseDeleteModal = () => {
