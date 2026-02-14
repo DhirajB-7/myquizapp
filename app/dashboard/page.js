@@ -551,14 +551,21 @@ const LiveParticipantsModal = ({ quizId, onClose }) => {
                     <td style={{ fontWeight: '700' }}>{p.name}</td>
                     <td>
                       <span style={{
-                        color: 'black',
+                        color: 'white', // Changed to white so it's visible on dark backgrounds
                         fontSize: '0.75rem',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '4px',
+                        gap: '6px', // Increased gap slightly
                         fontWeight: '700'
                       }}>
-                        <div style={{ width: '8px', height: '8px', color: "white" }} />
+                        {/* The Dot */}
+                        <div style={{
+                          width: '8px',
+                          height: '8px',
+                          backgroundColor: '#22c55e', // Added green background color
+                          borderRadius: '50%' // Makes it a circle
+                        }} />
+
                         ONLINE
                       </span>
                     </td>
