@@ -123,6 +123,13 @@ const PlayQuizContent = () => { // Renamed internal component
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     };
+    const getDeviceFingerprint = () => {
+    if (typeof window === 'undefined') return 'server'; // Safety for Next.js
+    const { userAgent, language } = window.navigator;
+    const { width, height } = window.screen;
+    const id = `${userAgent}|${language}|${width}x${height}`;
+    return btoa(id).slice(0, 32); 
+};
 
     // --- JOIN QUIZ & FULLSCREEN ---
     const handleJoinQuiz = async () => {
@@ -190,7 +197,7 @@ const PlayQuizContent = () => { // Renamed internal component
     useEffect(() => {
         const handleSecurityBreach = () => {
             if (!document.fullscreenElement && quizData) {
-                toast.error("SECURITY BREACH: Fullscreen exited. Submitting quiz...");
+                //toast.error("SECURITY BREACH: Fullscreen exited. Submitting quiz...");
                 handleFinishQuiz(); // Force submit the quiz
             }
         };
@@ -205,11 +212,7 @@ const PlayQuizContent = () => { // Renamed internal component
     };
 
     const handleSubmitExam = async () => {
-        const fingerprint = getDeviceFingerprint();
-        const lockKey = `quiz_lock_${joinData.quizId}_${fingerprint}`;
-        localStorage.setItem(lockKey, "COMPLETED");
-        if (document.exitFullscreen) document.exitFullscreen();
-
+       
         const questions = quizData.questions;
         let currentScore = 0;
         questions.forEach((q, idx) => {
