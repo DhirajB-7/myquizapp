@@ -297,8 +297,7 @@ const EditQuizModule = ({ quizId, onBack, primaryColor, userEmail }) => {
     };
     console.log("Payload for save:", payload);
     try {
-      const response = await fetch(`
-        `, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/Logged/Edit`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true',
