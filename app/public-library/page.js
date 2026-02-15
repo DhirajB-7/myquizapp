@@ -1,8 +1,8 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, User, Clock, Share2, QrCode, X, Ghost, Loader2, Plus, Zap, ArrowRight, Activity, ShieldCheck } from 'lucide-react';
+import { Play, User, Clock, Share2, QrCode, X, Ghost, Loader2, Plus, Zap, ArrowRight, Activity, ShieldCheck, Search } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import toast, { Toaster } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
@@ -10,7 +10,17 @@ const PublicQuizzes = () => {
     const [quizzes, setQuizzes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedQR, setSelectedQR] = useState(null);
+    const [searchTerm, setSearchTerm] = useState("");
     const router = useRouter();
+    
+    const filteredQuizzes = useMemo(() => {
+        return quizzes.filter(q =>
+            (q.quizTitle || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (q.author || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (String(q.quizId)).includes(searchTerm)
+        );
+    }, [quizzes, searchTerm]);
+    
     const fetchQuizzes = async (isInitial = false) => {
         try {
             const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/Public`, {
@@ -72,15 +82,21 @@ const PublicQuizzes = () => {
                     initial={{ opacity: 0, y: 20 }} 
                     animate={{ opacity: 1, y: 0 }}
                 >
-                    PUBLIC DEPLOYMENTS
+                    PUBLICALLY ACCESSIBLE QUIZZES
                 </motion.h1>
                 <p>Select a session to begin real-time evaluation.</p>
             </HeroSection>
 
+            <SearchBar
+                value={searchTerm}
+                onChange={setSearchTerm}
+                onClear={() => setSearchTerm("")}
+            />
+
             <AnimatePresence mode="popLayout">
-                {quizzes.length > 0 ? (
+                {filteredQuizzes.length > 0 ? (
                     <GridContainer>
-                        {quizzes.map((quiz, idx) => (
+                        {filteredQuizzes.map((quiz, idx) => (
                             <QuizCard 
                                 key={quiz.quizId}
                                 layout
@@ -176,6 +192,36 @@ const PublicQuizzes = () => {
             </AnimatePresence>
         </PageContainer>
     );
+};
+
+/* --- SEARCH BAR COMPONENT --- */
+const SearchBar = ({ value, onChange, onClear }) => {
+  return (
+    <SearchWrapper>
+      <div className="search-inner">
+        <Search size={20} className="search-icon" />
+        <input
+          type="text"
+          placeholder="SEARCH BY TITLE, AUTHOR OR ID..."
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+        />
+        <AnimatePresence>
+          {value && (
+            <motion.button
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              onClick={onClear}
+              className="clear-btn"
+            >
+              <X size={16} />
+            </motion.button>
+          )}
+        </AnimatePresence>
+      </div>
+    </SearchWrapper>
+  );
 };
 
 // --- Animations ---
@@ -427,6 +473,60 @@ const PrimaryBtn = styled.button`
     background: #fff; color: #000; border: none; padding: 16px 32px;
     font-weight: 900; letter-spacing: 1px; cursor: pointer;
     &:hover { background: #ccc; }
+`;
+
+const SearchWrapper = styled.div`
+  margin-bottom: 30px;
+  width: 100%;
+  max-width: 1200px;
+  
+  .search-inner {
+    display: flex;
+    align-items: center;
+    background: #000;
+    border: 0.5px solid #fff;
+    padding: 6px 18px;
+    gap: 12px;
+    border-radius: 4px;
+    
+    .search-icon { color: #fff; }
+    
+    input {
+      background: transparent;
+      border: none;
+      color: #fff;
+      width: 100%;
+      outline: none;
+      font-size: 1rem;
+      padding: 12px 0;
+      font-family: 'Courier New', monospace;
+      font-weight: 700;
+      
+      &::placeholder {
+        color: #888;
+      }
+    }
+    
+    .clear-btn {
+      background: #fff;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: #888;
+      transition: all 0.3s;
+
+      &:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: #fff;
+        color: #fff;
+      }
+    }
+  }
 `;
 
 export default PublicQuizzes;

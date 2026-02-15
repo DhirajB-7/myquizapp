@@ -53,6 +53,13 @@ const QRModal = ({ quizId, quizTitle, onClose }) => {
 const ResultModal = ({ quizId, onClose }) => {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredResults = useMemo(() => {
+    return results.filter(r =>
+      (r.name || "").toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [results, searchTerm]);
 
   useEffect(() => {
     const fetchResults = async () => {
@@ -157,12 +164,18 @@ const ResultModal = ({ quizId, onClose }) => {
         ) : results.length === 0 ? (
           <p className="no-data">NO RESULTS RECORDED YET.</p>
         ) : (
-          <ResultTable>
-            <thead>
-              <tr><th>NAME</th><th>SCORE</th><th>TOTAL</th><th>PERCENTAGE</th></tr>
-            </thead>
-            <tbody>
-              {results.map((res, i) => (
+          <>
+            <SearchBar
+              value={searchTerm}
+              onChange={setSearchTerm}
+              onClear={() => setSearchTerm("")}
+            />
+            <ResultTable>
+              <thead>
+                <tr><th>NAME</th><th>SCORE</th><th>TOTAL</th><th>PERCENTAGE</th></tr>
+              </thead>
+              <tbody>
+                {filteredResults.map((res, i) => (
                 <tr key={i}>
                   <td>{res.name}</td>
                   <td className="score-cell">{res.score}</td>
@@ -170,8 +183,9 @@ const ResultModal = ({ quizId, onClose }) => {
                   <td>{((res.score / res.outOf) * 100).toFixed(1)}%</td>
                 </tr>
               ))}
-            </tbody>
-          </ResultTable>
+              </tbody>
+            </ResultTable>
+          </>
         )}
       </ModalContent>
     </ModalOverlay>
@@ -206,7 +220,11 @@ const EditQuizModule = ({ quizId, onBack, primaryColor, userEmail }) => {
             duration: data.duration,
             status: data.status,
             isPrivate: data.isPrivate,
-            createdBy: data.createdBy
+            createdBy: data.createdBy,
+            // additional fields persisted by create page
+            authorName: data.author || data.authorName || '',
+            timeLimit: typeof data.timer !== 'undefined' ? Boolean(data.timer) : Boolean(data.timeLimit),
+            timePerQ: data.timePerQ
           });
           const qs = data.questions || [];
           setQuestions(qs);
@@ -257,8 +275,13 @@ const EditQuizModule = ({ quizId, onBack, primaryColor, userEmail }) => {
   };
 
   const handleSave = async () => {
-    if (!quizInfo?.quizTitle?.trim() || !quizInfo?.duration) {
-      toast.error("Quiz title and duration are required");
+    if (!quizInfo?.quizTitle?.trim()) {
+      toast.error("Quiz title is required");
+      return;
+    }
+
+    if (!quizInfo?.authorName?.trim()) {
+      toast.error("Author name is required");
       return;
     }
 
@@ -273,14 +296,26 @@ const EditQuizModule = ({ quizId, onBack, primaryColor, userEmail }) => {
 
     setSaving(true);
     const isPrivate = quizInfo.status === true || String(quizInfo.status).toLowerCase() === 'true';
+    // validate timer fields if enabled
+    if (quizInfo.timeLimit) {
+      const t = parseInt(quizInfo.timePerQ);
+      if (isNaN(t) || t <= 0) {
+        toast.error("Minutes per question must be a positive number");
+        setSaving(false);
+        return;
+      }
+    }
+
     const payload = {
       quiz: {
         quiz: {
           quizId: parseInt(quizId),
           quizTitle: quizInfo.quizTitle,
-          duration: parseInt(quizInfo.duration),
           isPrivate: quizInfo.isPrivate || isPrivate,
-          createdBy: quizInfo.createdBy || userEmail
+          createdBy: quizInfo.createdBy || userEmail,
+          author: quizInfo.authorName || quizInfo.createdBy || userEmail,
+          timer: Boolean(quizInfo.timeLimit),
+          timePerQ: parseInt(quizInfo.timePerQ) || 0
         },
         questions: questions.map(q => ({
           qno: q.isLocalOnly ? 0 : q.qno,
@@ -345,10 +380,37 @@ const EditQuizModule = ({ quizId, onBack, primaryColor, userEmail }) => {
               <label>QUIZ TITLE</label>
               <input value={quizInfo?.quizTitle || ''} onChange={(e) => setQuizInfo({ ...quizInfo, quizTitle: e.target.value })} />
             </div>
+
             <div className="field">
-              <label>DURATION (MIN)</label>
-              <input type="number" value={quizInfo?.duration || ''} onChange={(e) => setQuizInfo({ ...quizInfo, duration: e.target.value })} />
+              <label>AUTHOR NAME</label>
+              <input value={quizInfo?.authorName || ''} onChange={(e) => setQuizInfo({ ...quizInfo, authorName: e.target.value })} />
             </div>
+
+            {/* 1. The Select Field (Toggle) */}
+            <div className="field">
+              <label>TIME LIMIT</label>
+              <select
+                value={String(quizInfo?.timeLimit || false)}
+                onChange={(e) => setQuizInfo({ ...quizInfo, timeLimit: e.target.value === 'true' })}
+              >
+                <option value="false">Disabled</option>
+                <option value="true">Enabled</option>
+              </select>
+            </div>
+
+            {/* 2. The Conditional Field (Dependent) */}
+            {quizInfo?.timeLimit && (
+              <div className="field">
+                <label>MINUTES PER QUESTION</label>
+                <input
+                  type="number"
+                  placeholder="e.g. 1"
+                  value={quizInfo?.timePerQ || ''}
+                  onChange={(e) => setQuizInfo({ ...quizInfo, timePerQ: e.target.value })}
+                />
+              </div>
+            )}
+
             <div className="field">
               <label>VISIBILITY</label>
               <select
@@ -466,7 +528,7 @@ const SearchBar = ({ value, onChange, onClear }) => {
         <Search size={20} className="search-icon" />
         <input
           type="text"
-          placeholder="SEARCH BY QUIZ TITLE OR ID..."
+          placeholder="SEARCH BY NAME, QUIZ TITLE, ID..."
           value={value}
           onChange={(e) => onChange(e.target.value)}
         />
@@ -492,6 +554,13 @@ const SearchBar = ({ value, onChange, onClear }) => {
 const LiveParticipantsModal = ({ quizId, onClose }) => {
   const [participants, setParticipants] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredParticipants = useMemo(() => {
+    return participants.filter(p =>
+      (p.name || "").toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [participants, searchTerm]);
 
   useEffect(() => {
     const fetchLive = async () => {
@@ -535,17 +604,23 @@ const LiveParticipantsModal = ({ quizId, onClose }) => {
         ) : participants.length === 0 ? (
           <p className="no-data">NO ONE IS CURRENTLY TAKING THIS QUIZ.</p>
         ) : (
-          <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-            <ResultTable>
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>STUDENT NAME</th>
-                  <th>STATUS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {participants.map((p, i) => (
+          <div>
+            <SearchBar
+              value={searchTerm}
+              onChange={setSearchTerm}
+              onClear={() => setSearchTerm("")}
+            />
+            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+              <ResultTable>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>STUDENT NAME</th>
+                    <th>STATUS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredParticipants.map((p, i) => (
                   <tr key={i}>
                     <td>{i + 1}</td>
                     <td style={{ fontWeight: '700' }}>{p.name}</td>
@@ -573,6 +648,7 @@ const LiveParticipantsModal = ({ quizId, onClose }) => {
                 ))}
               </tbody>
             </ResultTable>
+            </div>
           </div>
         )}
       </ModalContent>
@@ -855,8 +931,10 @@ const UserDashboard = () => {
 
                       <h3 className="quiz-title">{quiz.quizTitle || "UNTITLED"}</h3>
                       <DataGrid>
-                        <div className="data-item"><Clock size={14} /> {quiz.duration}M</div>
-                        <div className="data-item"><Fingerprint size={14} /> ID: {quiz.quizId}</div>
+                        <div className="data-item">
+                          <Clock size={14} />
+                          {Number(quiz.timePerQ) === 0 ? "24HR" : `${quiz.timePerQ} M-P-Q`}
+                        </div>                        <div className="data-item"><Fingerprint size={14} /> ID: {quiz.quizId}</div>
                       </DataGrid>
                       <SeeQuestionBtn onClick={() => setSelectedQuizId(quiz.quizId)}>
                         <Eye size={16} /> SEE QUESTIONS
