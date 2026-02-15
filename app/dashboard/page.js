@@ -1438,24 +1438,39 @@ const ResultTable = styled.table`
   th, td {
     text-align: left;
     padding: 12px;
-    border: 2px solid #fff;  /* CHANGE: was #000 */
+    border: 2px solid #fff;
   }
   
   th {
     font-size: 0.8rem;
     font-weight: 900;
     text-transform: uppercase;
-    background: #fff;  /* CHANGE: was #000 */
-    color: #000;  /* CHANGE: was #fff */
+    background: #fff;
+    color: #000;
   }
   
   td {
-    color: #fff;  /* ADD THIS */
+    color: #fff;
   }
   
   .score-cell {
     font-weight: 900;
     font-size: 1.2rem;
+  }
+
+  @media (max-width: 450px) {
+    th, td {
+      padding: 8px 4px;
+      font-size: 0.7rem;
+    }
+
+    th {
+      font-size: 0.65rem;
+    }
+
+    .score-cell {
+      font-size: 0.9rem;
+    }
   }
 `;
 
