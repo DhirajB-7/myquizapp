@@ -20,6 +20,24 @@ const theme = {
     font: "'Courier New', Courier, monospace"
 };
 
+
+
+// Helper to convert minutes back to "HH:MM" for the input value
+const minutesToTime = (totalMinutes) => {
+    if (!totalMinutes) return "00:00";
+    const hours = Math.floor(totalMinutes / 60).toString().padStart(2, '0');
+    const mins = (totalMinutes % 60).toString().padStart(2, '0');
+    return `${hours}:${mins}`;
+};
+
+const timeToMinutes = (h, m) => (parseInt(h) * 60) + parseInt(m);
+
+const minutesToHHMM = (totalMinutes) => {
+    const h = Math.floor((totalMinutes || 0) / 60);
+    const m = (totalMinutes || 0) % 60;
+    return { h, m };
+};
+
 const CreatePage = () => {
     const [phase, setPhase] = useState(0);
     const [loading, setLoading] = useState(false);
@@ -47,13 +65,13 @@ const CreatePage = () => {
     useEffect(() => {
         const userData = localStorage.getItem("user");
         const token = localStorage.getItem("token");
-        
+
         // Check if user is logged in, redirect to login if not
         if (!userData || !token) {
             window.location.href = '/login';
             return;
         }
-        
+
         if (userData) {
             try {
                 const parsedUser = JSON.parse(userData);
@@ -288,7 +306,7 @@ const CreatePage = () => {
 
                             <DualGrid>
                                 <FormGroup>
-                                    <label><Timer size={12} /> TIMER PER QUESTION</label>
+                                    <label><Timer size={12} /> TIMER </label>
                                     <BinaryToggle>
                                         <button className={quizInfo.timeLimit ? "active" : ""} onClick={() => handleInfoChange('timeLimit', true)}>ENABLED</button>
                                         <button className={!quizInfo.timeLimit ? "active" : ""} onClick={() => handleInfoChange('timeLimit', false)}>DISABLED</button>
@@ -320,9 +338,59 @@ const CreatePage = () => {
                                     <input type="number" className="zolvi-input" value={quizInfo.questionPerMin} onChange={(e) => handleInfoChange('questionPerMin', e.target.value)} placeholder="e.g. 1 Min" />
                                 </FormGroup>
                             ) : (
+                                // <FormGroup>
+                                //     <label><Clock size={12} /> WINDOW OPEN FOR STUDENT (MINUTES)</label>
+                                //     <input 
+                                //         type="number" 
+                                //         className="zolvi-input" 
+                                //         value={quizInfo.timePerStudent} 
+                                //         onChange={(e) => handleInfoChange('timePerStudent', e.target.value)}
+                                //         min="1"
+                                //         max="2880"
+                                //         step="1"
+                                //         placeholder="Enter minutes "
+                                //     />
+                                // </FormGroup>
                                 <FormGroup>
-                                    <label><Clock size={12} /> WINDOW OPEN FOR STUDENT (HOURS)</label>
-                                    <input type="number" className="zolvi-input" value={quizInfo.timePerStudent} onChange={(e) => handleInfoChange('timePerStudent', e.target.value)} placeholder="e.g. 24 HR" />
+                                    <label><Clock size={12} /> WINDOW OPEN FOR STUDENT (HH : MM)</label>
+                                    <PickerContainer>
+                                        {/* HOURS BLOCK */}
+                                        <ScrollBlock>
+                                            <span className="unit-label">HRS</span>
+                                            <select
+                                                value={minutesToHHMM(quizInfo.timePerStudent).h}
+                                                onChange={(e) => {
+                                                    const { m } = minutesToHHMM(quizInfo.timePerStudent);
+                                                    handleInfoChange('timePerStudent', timeToMinutes(e.target.value, m));
+                                                }}
+                                            >
+                                                {Array.from({ length: 25 }, (_, i) => (
+                                                    <option key={i} value={i}>{i.toString().padStart(2, '0')}</option>
+                                                ))}
+                                            </select>
+                                        </ScrollBlock>
+
+                                        <div className="separator">:</div>
+
+                                        {/* MINUTES BLOCK */}
+                                        <ScrollBlock>
+                                            <span className="unit-label">MIN</span>
+                                            <select
+                                                value={minutesToHHMM(quizInfo.timePerStudent).m}
+                                                onChange={(e) => {
+                                                    const { h } = minutesToHHMM(quizInfo.timePerStudent);
+                                                    handleInfoChange('timePerStudent', timeToMinutes(h, e.target.value));
+                                                }}
+                                            >
+                                                {Array.from({ length: 60 }, (_, i) => (
+                                                    <option key={i} value={i}>{i.toString().padStart(2, '0')}</option>
+                                                ))}
+                                            </select>
+                                        </ScrollBlock>
+                                    </PickerContainer>
+                                    <small style={{ fontSize: '9px', color: theme.muted, marginTop: '5px' }}>
+                                        System Value: {quizInfo.timePerStudent || 0} total minutes
+                                    </small>
                                 </FormGroup>
                             )}
 
@@ -411,6 +479,97 @@ const CreatePage = () => {
 };
 
 /* --- STYLES --- */
+const PickerContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: #0a0a0a; /* Slightly lighter than pure black */
+  padding: 15px;
+  border: 1px solid ${theme.border};
+  width: 100%;
+  border-radius: 4px;
+
+  .separator {
+    font-size: 24px;
+    font-weight: 900;
+    color: ${theme.muted};
+    margin-top: 15px;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+`;
+
+const ScrollBlock = styled.div`
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 5px;
+
+  .unit-label {
+    font-size: 9px;
+    color: ${theme.muted};
+    font-weight: 900;
+    letter-spacing: 2px;
+    text-align: center;
+  }
+
+  .select-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  /* We keep the select for functionality but hide its ugliness */
+  select {
+    width: 100%;
+    background: #111;
+    color: ${theme.text};
+    border: 1px solid ${theme.border};
+    padding: 15px 10px;
+    font-size: 1.5rem; /* Large, readable numbers */
+    font-family: ${theme.font};
+    font-weight: 900;
+    text-align: center;
+    cursor: pointer;
+    appearance: none;
+    outline: none;
+    transition: all 0.2s ease;
+    border-radius: 2px;
+
+    &:hover {
+      background: #151515;
+      border-color: ${theme.muted};
+    }
+
+    &:focus {
+      border-color: ${theme.accent};
+      background: #1a1a1a;
+      box-shadow: 0 0 15px rgba(255, 255, 255, 0.05);
+    }
+
+    option {
+      background: #000;
+      color: #fff;
+      font-size: 1rem;
+    }
+  }
+
+  /* Custom arrow for the select */
+  .select-wrapper::after {
+    content: '▼';
+    font-size: 8px;
+    position: absolute;
+    right: 15px;
+    color: ${theme.muted};
+    pointer-events: none;
+  }
+`;
+
 const shimmer = keyframes`
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
@@ -571,5 +730,7 @@ const PrimaryBtn = styled.button`
 const SecondaryBtn = styled.button` width: 100%; padding: 15px; background: transparent; border: 1px solid ${theme.border}; color: ${theme.text}; font-size: 12px; cursor: pointer; &:hover { background: #111; } `;
 const ActionArea = styled.div` display: flex; gap: 10px; margin-top: 20px; flex-direction: column; `;
 const DualGrid = styled.div` display: grid; grid-template-columns: 1fr 1fr; gap: 15px; `;
+
+
 
 export default CreatePage;

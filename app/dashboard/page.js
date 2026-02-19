@@ -422,11 +422,15 @@ const EditQuizModule = ({ quizId, onBack, primaryColor, userEmail }) => {
               </div>
             ) : (
               <div className="field">
-                <label>WINDOW OPEN (HOURS)</label>
+                <label>WINDOW OPEN (MINUTES)</label>
                 <input
                   type="number"
                   value={quizInfo?.timePerStudent || ''}
                   onChange={(e) => setQuizInfo({ ...quizInfo, timePerStudent: e.target.value })}
+                  min="1"
+                  max="2880"
+                  step="1"
+                  placeholder="Enter minutes"
                 />
               </div>
             )}
@@ -964,14 +968,14 @@ const UserDashboard = () => {
 
                       <h3 className="quiz-title">Quiz Title:{quiz.quizTitle || "UNTITLED"}</h3><br></br>
                       <DataGrid>
-                        {/* window for student always shown, but may be zero if not used */}
+                        {/* window for student: showing minutes */}
                         <div className="data-item">
                           {quiz.timeLimit ? (
                             <span>N/A</span>
                           ) : (
                             <>
                               <Clock size={14} />
-                              {quiz.timePerStudent ? `${quiz.timePerStudent}h window` : "window none"}
+                              {quiz.timePerStudent ? `${Math.floor(quiz.timePerStudent / 60)}h ${quiz.timePerStudent % 60}m` : "none"}
                             </>
                           )}
                         </div>

@@ -14,6 +14,13 @@ export async function GET(req) {
   await connectDB();
   const { searchParams } = new URL(req.url);
   const code = searchParams.get('code');
+  const error = searchParams.get('error');
+
+  // Handle OAuth errors
+  if (error) {
+    console.error('GitHub OAuth error:', error);
+    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_BASE_URL}/login?error=${error}`);
+  }
 
   if (!code) {
     // Redirect to GitHub OAuth page
@@ -38,6 +45,12 @@ export async function GET(req) {
     });
 
     const tokenData = await tokenRes.json();
+    console.log('GitHub token response:', { success: !!tokenData.access_token, error: tokenData.error });
+
+    if (!tokenData.access_token) {
+      console.error('No access token from GitHub:', tokenData);
+      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_BASE_URL}/login?error=no_token`);
+    }
 
     const profileRes = await fetch('https://api.github.com/user', {
       headers: { Authorization: `token ${tokenData.access_token}`, Accept: 'application/vnd.github.v3+json' }
@@ -50,19 +63,40 @@ export async function GET(req) {
     });
     const emails = await emailsRes.json();
     const primaryEmailObj = emails.find(e => e.primary) || emails[0];
-    const email = primaryEmailObj?.email || profile.email;
+    let email = primaryEmailObj?.email || profile.email;
+
+    console.log('GitHub profile response:', {
+      hasEmail: !!email,
+      email,
+      name: profile.name || profile.login,
+      id: profile.id
+    });
+
+    if (!email) {
+      console.error('No email from GitHub:', { profile, emails });
+      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_BASE_URL}/login?error=no_email_found`);
+    }
+
+    // Ensure email is not null or undefined before creating user
+    email = String(email).toLowerCase().trim();
+    if (!email || email === 'null' || email === 'undefined') {
+      console.error('Invalid email:', email);
+      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_BASE_URL}/login?error=invalid_email`);
+    }
 
     let user = await User.findOne({ email });
     if (!user) {
       user = new User({
-        name: profile.name || profile.login,
+        name: profile.name || profile.login || 'GitHub User',
         email,
         provider: 'github',
         providerId: String(profile.id),
         avatar: profile.avatar_url
       });
+      console.log('Creating new user:', { email, name: user.name });
       await user.save();
     } else {
+      console.log('Updating existing user:', email);
       user.provider = 'github';
       user.providerId = String(profile.id);
       user.avatar = profile.avatar_url;
@@ -73,7 +107,7 @@ export async function GET(req) {
     const redirectUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/login?token=${token}`;
     return NextResponse.redirect(redirectUrl);
   } catch (err) {
-    console.error(err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error('GitHub OAuth error:', err.message, err.stack);
+    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_BASE_URL}/login?error=${encodeURIComponent(err.message)}`);
   }
 }

@@ -4,75 +4,119 @@ import User from '../../../../models/User';
 import jwt from 'jsonwebtoken';
 
 const connectDB = async () => {
-  if (mongoose.connection.readyState === 1) return;
-  
-  // Clean version for modern Mongoose
-  await mongoose.connect(process.env.MONGODB_URI);
+    if (mongoose.connection.readyState === 1) return;
+    try {
+        await mongoose.connect(process.env.MONGODB_URI);
+    } catch (err) {
+        console.error("MongoDB Connection Error:", err);
+    }
 };
+
 export async function GET(req) {
-  await connectDB();
+    await connectDB();
 
-  const { searchParams } = new URL(req.url);
-  const code = searchParams.get('code');
+    const { searchParams } = new URL(req.url);
+    const code = searchParams.get('code');
+    const error = searchParams.get('error');
 
-  if (!code) {
-    // Redirect to Google OAuth consent page
-    const params = new URLSearchParams({
-      client_id: process.env.GOOGLE_CLIENT_ID,
-      redirect_uri: process.env.GOOGLE_REDIRECT_URI,
-      response_type: 'code',
-      scope: 'openid email profile',
-      access_type: 'offline',
-      prompt: 'consent'
-    });
-    return NextResponse.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
-  }
-
-  try {
-    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        code,
-        client_id: process.env.GOOGLE_CLIENT_ID,
-        client_secret: process.env.GOOGLE_CLIENT_SECRET,
-        redirect_uri: process.env.GOOGLE_REDIRECT_URI,
-        grant_type: 'authorization_code'
-      })
-    });
-
-    const tokenData = await tokenRes.json();
-
-    const profileRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-      headers: { Authorization: `Bearer ${tokenData.access_token}` }
-    });
-    const profile = await profileRes.json();
-
-    // find or create user
-    let user = await User.findOne({ email: profile.email });
-    if (!user) {
-      user = new User({
-        name: profile.name,
-        email: profile.email,
-        provider: 'google',
-        providerId: profile.sub,
-        avatar: profile.picture
-      });
-      await user.save();
-    } else {
-      user.provider = 'google';
-      user.providerId = profile.sub;
-      user.avatar = profile.picture;
-      await user.save();
+    // 1. Handle OAuth errors from Google
+    if (error) {
+        console.error('OAuth error from Google:', error);
+        return NextResponse.redirect(`${process.env.NEXT_PUBLIC_BASE_URL}/login?error=${error}`);
     }
 
-    const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '30d' });
+    // 2. Initial Redirect to Google
+    if (!code) {
+        const params = new URLSearchParams({
+            client_id: process.env.GOOGLE_CLIENT_ID,
+            redirect_uri: process.env.GOOGLE_REDIRECT_URI,
+            response_type: 'code',
+            scope: 'openid email profile',
+            access_type: 'offline',
+            prompt: 'consent'
+        });
+        return NextResponse.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
+    }
 
-    // Redirect back to login page with token
-    const redirectUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/login?token=${token}`;
-    return NextResponse.redirect(redirectUrl);
-  } catch (err) {
-    console.error(err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
-  }
+    try {
+        // 3. Exchange Code for Access Token
+        const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                code,
+                client_id: process.env.GOOGLE_CLIENT_ID,
+                client_secret: process.env.GOOGLE_CLIENT_SECRET,
+                redirect_uri: process.env.GOOGLE_REDIRECT_URI,
+                grant_type: 'authorization_code'
+            })
+        });
+
+        const tokenData = await tokenRes.json();
+
+        if (!tokenData.access_token) {
+            console.error('Failed to get access token:', tokenData);
+            return NextResponse.redirect(`${process.env.NEXT_PUBLIC_BASE_URL}/login?error=token_exchange_failed`);
+        }
+
+        // 4. Fetch User Profile (Using OIDC userinfo endpoint)
+        const profileRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { Authorization: `Bearer ${tokenData.access_token}` }
+        });
+        const profile = await profileRes.json();
+
+        // 5. Robust Email Extraction
+        // Sometimes Google returns email in profile.email, sometimes in other fields
+        const rawEmail = profile.email || profile.sub; // Fallback to sub if email is missing (though rare with correct scope)
+        
+        if (!profile.email) {
+            console.error('Google did not return an email:', profile);
+            return NextResponse.redirect(`${process.env.NEXT_PUBLIC_BASE_URL}/login?error=no_email_permission`);
+        }
+
+        const userEmail = String(profile.email).toLowerCase().trim();
+
+        // 6. Database Operations (Find or Create)
+        let user = await User.findOne({ email: userEmail });
+
+        if (!user) {
+            // NEW USER
+            user = new User({
+                name: profile.name || 'Google User',
+                email: userEmail,
+                provider: 'google',
+                providerId: profile.sub || profile.id,
+                avatar: profile.picture
+            });
+        } else {
+            // UPDATE EXISTING USER
+            user.name = profile.name || user.name;
+            user.provider = 'google';
+            user.providerId = profile.sub || profile.id;
+            user.avatar = profile.picture || user.avatar;
+        }
+
+        // 7. Save the user (The fix for your validation error)
+        try {
+            await user.save();
+        } catch (saveError) {
+            console.error("Mongoose Save Error:", saveError.message);
+            return NextResponse.redirect(`${process.env.NEXT_PUBLIC_BASE_URL}/login?error=db_validation_failed`);
+        }
+
+        // 8. Generate App JWT
+        const token = jwt.sign(
+            { id: user._id, email: user.email }, 
+            process.env.JWT_SECRET, 
+            { expiresIn: '30d' }
+        );
+
+        // 9. Final Redirect with Token
+        const redirectUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/login?token=${token}`;
+        return NextResponse.redirect(redirectUrl);
+
+    } catch (err) {
+        console.error('Critical Auth Error:', err);
+        return NextResponse.redirect(`${process.env.NEXT_PUBLIC_BASE_URL}/login?error=server_error`);
+    }
 }

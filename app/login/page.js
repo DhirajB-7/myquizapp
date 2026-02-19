@@ -64,12 +64,24 @@ const Form = () => {
         }
     }, []);
 
-    // Handle OAuth redirect token (e.g. /login?token=...)
+    // Handle OAuth redirect token or error (e.g. /login?token=... or /login?error=...)
     useEffect(() => {
       try {
         if (typeof window === 'undefined') return;
         const url = new URL(window.location.href);
+        const errorParam = url.searchParams.get('error');
         const tokenParam = url.searchParams.get('token');
+        
+        // Handle OAuth error
+        if (errorParam) {
+          const errorMsg = decodeURIComponent(errorParam).replace(/_/g, ' ');
+          toast.error(`OAuth Error: ${errorMsg}`);
+          url.searchParams.delete('error');
+          window.history.replaceState({}, '', url.toString());
+          return;
+        }
+
+        // Handle OAuth token
         if (!tokenParam) return;
 
         (async () => {
@@ -239,12 +251,26 @@ const Form = () => {
         }
     };
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
         setIsLoggingOut(true);
-        toast.success("Logged out safely");
-        localStorage.clear();
-        setIsAuth(false);
-        setTimeout(() => (router.push("/")), 800);
+        try {
+            const token = localStorage.getItem("token");
+            if (token) {
+                await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/logout`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token })
+                });
+            }
+            toast.success("Logged out safely");
+        } catch (err) {
+            console.error('Logout error:', err);
+            toast.error("Error during logout");
+        } finally {
+            localStorage.clear();
+            setIsAuth(false);
+            setTimeout(() => router.push("/"), 800);
+        }
     };
 
     const handleDashboardClick = () => {

@@ -1,9 +1,26 @@
 "use client";
-import React, { useState, useEffect, Suspense } from 'react'; // Added Suspense
+import React, { useState, useEffect, Suspense } from 'react';
 import styled, { keyframes, css, createGlobalStyle } from 'styled-components';
 import { Zap, Loader2, EyeOff, MonitorSmartphone, Trophy, RefreshCcw, User, Hash, CheckCircle2, AlertTriangle, XCircle, Timer, ChevronRight, ShieldAlert } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { useSearchParams, useRouter } from 'next/navigation';
+import CryptoJS from 'crypto-js';
+
+// --- DECRYPTION FUNCTION ---
+const secretKey = CryptoJS.enc.Utf8.parse("jon-snow-is-here");
+
+const decrypt = (encryptedData) => {
+    try {
+        const decrypted = CryptoJS.AES.decrypt(encryptedData, secretKey, {
+            mode: CryptoJS.mode.ECB,
+            padding: CryptoJS.pad.Pkcs7
+        });
+        return decrypted.toString(CryptoJS.enc.Utf8);
+    } catch (e) {
+        console.error('Decryption failed:', e);
+        return encryptedData; // fallback to original if decrypt fails
+    }
+};
 
 // 1. GLOBAL PROTECTION STYLES
 const GlobalSecurity = createGlobalStyle`
@@ -110,17 +127,22 @@ const PlayQuizContent = () => { // Renamed internal component
     useEffect(() => {
         if (!quizData || isSubmitted || !quizData.quiz?.timer) return;
         if (timeLeft === 0) {
-            handleNextQuestion();
+            // auto advance even without answer
+            handleNextQuestion(true);
             return;
         }
         const timer = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
         return () => clearInterval(timer);
     }, [timeLeft, quizData, isSubmitted]);
 
-    const handleNextQuestion = () => {
-        // ensure current question has an answer
-        if (!userAnswers[currentQuestionIdx]) {
-            toast.error("Please select an answer before proceeding");
+    const handleNextQuestion = (force = false) => {
+        // Check if timer is enabled (data.timer = false means question is compulsory)
+        const isCompulsory = quizData?.quiz?.timer === false;
+        const answerSelected = userAnswers[currentQuestionIdx];
+
+        // If question is compulsory and no answer selected, show error toast
+        if (isCompulsory && !answerSelected) {
+            toast.error("Question is Compulsory");
             return;
         }
 
@@ -195,10 +217,10 @@ const PlayQuizContent = () => { // Renamed internal component
             setShowInstantScore(Boolean(data.quiz.showInstantScore));
         }
 
-        // Enforce per-attender access window (hours) if configured by creator
+        // Enforce per-attender access window (minutes) if configured by creator
         try {
-            const hours = parseInt(data.quiz?.timePerStudent || 0);
-            if (hours > 0) {
+            const minutes = parseInt(data.quiz?.timePerStudent || 0);
+            if (minutes > 0) {
                 const accessKey = `quiz_access_${joinData.quizId}_${fingerprint}`;
                 const existing = localStorage.getItem(accessKey);
                 let allow = true;
@@ -215,7 +237,7 @@ const PlayQuizContent = () => { // Renamed internal component
                     } catch (e) { allow = true; }
                 }
                 if (allow) {
-                    const expires = Date.now() + hours * 3600 * 1000;
+                    const expires = Date.now() + minutes * 60 * 1000;
                     localStorage.setItem(accessKey, JSON.stringify({ expires }));
                     setAccessExpires(expires);
                 } else if (existing) {
@@ -239,7 +261,7 @@ const PlayQuizContent = () => { // Renamed internal component
         const handleSecurityBreach = () => {
             if (!document.fullscreenElement && quizData) {
                 //toast.error("SECURITY BREACH: Fullscreen exited. Submitting quiz...");
-                handleSubmitExam(); // Force submit the quiz
+              // Force submit the quiz
             }
         };
 
@@ -254,6 +276,14 @@ const PlayQuizContent = () => { // Renamed internal component
         return () => clearInterval(t);
     }, [accessExpires]);
 
+    // auto-submit exam when student window expires
+    useEffect(() => {
+        if (accessExpires && now >= accessExpires && !isSubmitted) {
+            toast.error("Access window expired - submitting exam");
+            handleSubmitExam();
+        }
+    }, [now, accessExpires, isSubmitted]);
+
     const handleSelectOption = (questionIdx, optionText) => {
         if (isSubmitted) return;
         setUserAnswers(prev => ({ ...prev, [questionIdx]: optionText }));
@@ -263,7 +293,11 @@ const PlayQuizContent = () => { // Renamed internal component
     const questions = quizData.questions;
     let currentScore = 0;
     questions.forEach((q, idx) => {
-        if (userAnswers[idx] === q[q.correctOpt]) currentScore++;
+        // Decrypt the correctOpt if it's encrypted
+        const correctOpt = q.correctOpt.startsWith('U2F') || q.correctOpt.includes('=') 
+            ? decrypt(q.correctOpt) 
+            : q.correctOpt;
+        if (userAnswers[idx] === q[correctOpt]) currentScore++;
     });
 
     const finalSubmission = {
@@ -418,9 +452,11 @@ const PlayQuizContent = () => { // Renamed internal component
                                     const remaining = accessExpires - now;
                                     const hrs = Math.floor(remaining / (1000 * 60 * 60));
                                     const mins = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+                                    const secs = Math.floor((remaining % (1000 * 60)) / 1000);
+                                    const pad = n => String(n).padStart(2, '0');
                                     return (
                                         <div style={{ marginLeft: 12 }} className="status-pill" title="Access window remaining">
-                                            <Timer size={12} /> ACCESS: {hrs}h {mins}m
+                                            <Timer size={12} /> TIMER: {pad(hrs)}:{pad(mins)}:{pad(secs)}
                                         </div>
                                     );
                                 })()
@@ -460,7 +496,11 @@ const PlayQuizContent = () => { // Renamed internal component
                                             {["opt1", "opt2", "opt3", "opt4"].map((optKey) => {
                                                 const optValue = q[optKey];
                                                 const isSelected = userAnswers[idx] === optValue;
-                                                const isCorrect = optValue === q[q.correctOpt];
+                                                // Decrypt correctOpt for comparison
+                                                const correctOpt = q.correctOpt.startsWith('U2F') || q.correctOpt.includes('=')
+                                                    ? decrypt(q.correctOpt)
+                                                    : q.correctOpt;
+                                                const isCorrect = optValue === q[correctOpt];
                                                 let variant = "default";
                                                 if (isSubmitted) {
                                                     if (showInstantScore) {
