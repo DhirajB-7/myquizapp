@@ -315,7 +315,9 @@ const EditQuizModule = ({ quizId, onBack, primaryColor, userEmail }) => {
           createdBy: quizInfo.createdBy || userEmail,
           author: quizInfo.authorName || quizInfo.createdBy || userEmail,
           timer: Boolean(quizInfo.timeLimit),
-          timePerQ: parseInt(quizInfo.timePerQ) || 0
+          timePerQ: parseInt(quizInfo.timePerQ) || 0,
+          showInstantScore: Boolean(quizInfo.showInstantScore),
+          timePerStudent: quizInfo.timeLimit ? 0 : parseInt(quizInfo.timePerStudent) || 0
         },
         questions: questions.map(q => ({
           qno: q.isLocalOnly ? 0 : q.qno,
@@ -393,13 +395,44 @@ const EditQuizModule = ({ quizId, onBack, primaryColor, userEmail }) => {
                 value={String(quizInfo?.timeLimit || false)}
                 onChange={(e) => setQuizInfo({ ...quizInfo, timeLimit: e.target.value === 'true' })}
               >
-                <option value="false">Disabled</option>
-                <option value="true">Enabled</option>
+                <option value="false">Window Open For Student</option>
+                <option value="true">Minutes Per Question</option>
               </select>
             </div>
 
+            <div className="field">
+              <label>INSTANT SCORE</label>
+              <select
+                value={String(quizInfo?.showInstantScore || false)}
+                onChange={(e) => setQuizInfo({ ...quizInfo, showInstantScore: e.target.value === 'true' })}
+              >
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
+            </div>
+
+            {quizInfo?.timeLimit ? (
+              <div className="field">
+                <label>MINUTES PER QUESTION</label>
+                <input
+                  type="number"
+                  value={quizInfo?.timePerQ || ''}
+                  onChange={(e) => setQuizInfo({ ...quizInfo, timePerQ: e.target.value })}
+                />
+              </div>
+            ) : (
+              <div className="field">
+                <label>WINDOW OPEN (HOURS)</label>
+                <input
+                  type="number"
+                  value={quizInfo?.timePerStudent || ''}
+                  onChange={(e) => setQuizInfo({ ...quizInfo, timePerStudent: e.target.value })}
+                />
+              </div>
+            )}
+
             {/* 2. The Conditional Field (Dependent) */}
-            {quizInfo?.timeLimit && (
+            {/* {quizInfo?.timeLimit && (
               <div className="field">
                 <label>MINUTES PER QUESTION</label>
                 <input
@@ -409,7 +442,7 @@ const EditQuizModule = ({ quizId, onBack, primaryColor, userEmail }) => {
                   onChange={(e) => setQuizInfo({ ...quizInfo, timePerQ: e.target.value })}
                 />
               </div>
-            )}
+            )} */}
 
             <div className="field">
               <label>VISIBILITY</label>
@@ -929,12 +962,40 @@ const UserDashboard = () => {
                         </ActionWrapper>
                       </div>
 
-                      <h3 className="quiz-title">{quiz.quizTitle || "UNTITLED"}</h3>
+                      <h3 className="quiz-title">Quiz Title:{quiz.quizTitle || "UNTITLED"}</h3><br></br>
                       <DataGrid>
+                        {/* window for student always shown, but may be zero if not used */}
                         <div className="data-item">
+                          {quiz.timeLimit ? (
+                            <span>N/A</span>
+                          ) : (
+                            <>
+                              <Clock size={14} />
+                              {quiz.timePerStudent ? `${quiz.timePerStudent}h window` : "window none"}
+                            </>
+                          )}
+                        </div>
+
+                        <div className="data-item"><Fingerprint size={14} /> ID: {quiz.quizId}</div>
+
+                        <div className="data-item">
+                          <Trophy size={14} />
+                          <span> Score: {quiz.showInstantScore ? "Yes" : "No"}</span>
+                        </div>
+
+                        <div className="data-item" title={`raw:${quiz.timePerQ}`}> 
                           <Clock size={14} />
-                          {Number(quiz.timePerQ) === 0 ? "24HR" : `${quiz.timePerQ} M-P-Q`}
-                        </div>                        <div className="data-item"><Fingerprint size={14} /> ID: {quiz.quizId}</div>
+                          <span>TPQ: {quiz.timeLimit ? (
+                            quiz.timePerQ && Number(quiz.timePerQ) > 0
+                              ? `${quiz.timePerQ}m/q`
+                              : "24HR"
+                          ) : (
+                            quiz.timePerQ && Number(quiz.timePerQ) > 0
+                              ? `${quiz.timePerQ}m/q`
+                              : "N/A"
+                          )}</span>
+                         
+                        </div>
                       </DataGrid>
                       <SeeQuestionBtn onClick={() => setSelectedQuizId(quiz.quizId)}>
                         <Eye size={16} /> SEE QUESTIONS
@@ -1028,7 +1089,7 @@ const StyledCard = styled(motion.div)`
   /* --- Fix: Stability --- */
   display: flex;
   flex-direction: column;
-  min-height: 220px; /* Ensures all cards stay same height regardless of status */
+  min-height: 260px; /* Ensures all cards stay same height regardless of status */
   width: 100%;
   box-sizing: border-box;
 
@@ -1614,21 +1675,33 @@ const LoadingState = styled.div`
 `;
 
 const DataGrid = styled.div`
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 10px;
   margin-bottom: 15px;
   
   .data-item {
     font-size: 0.75rem;
     font-weight: 900;
-    background: #000;  /* CHANGE: was #fff */
-    border: 2px solid #fff;  /* CHANGE: was #000 */
-    padding: 6px 10px;
+    background: #000;
+    border: 2px solid #fff;
+    padding: 12px;
     display: flex;
     align-items: center;
-    gap: 4px;
+    justify-content: center;
+    gap: 6px;
     text-transform: uppercase;
-    color: #fff;  /* ADD THIS */
+    color: #fff;
+    width: 100%;
+    height: 50px;
+    box-sizing: border-box;
+    flex-direction: row;
+    text-align: center;
+    flex-wrap: wrap;
+  }
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
   }
 `;
 

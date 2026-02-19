@@ -33,6 +33,9 @@ const PlayQuizContent = () => { // Renamed internal component
     const [timeLeft, setTimeLeft] = useState(60);
     const [warningCount, setWarningCount] = useState(0);
     const [screenBlocked, setScreenBlocked] = useState(false);
+    const [showInstantScore, setShowInstantScore] = useState(false);
+    const [accessExpires, setAccessExpires] = useState(null);
+    const [now, setNow] = useState(Date.now());
 
     // --- FIX: Initialize state with URL param directly ---
     const [joinData, setJoinData] = useState({
@@ -115,6 +118,12 @@ const PlayQuizContent = () => { // Renamed internal component
     }, [timeLeft, quizData, isSubmitted]);
 
     const handleNextQuestion = () => {
+        // ensure current question has an answer
+        if (!userAnswers[currentQuestionIdx]) {
+            toast.error("Please select an answer before proceeding");
+            return;
+        }
+
         const isLastQuestion = currentQuestionIdx === quizData.questions.length - 1;
         if (isLastQuestion) handleSubmitExam();
         else {
@@ -180,6 +189,43 @@ const PlayQuizContent = () => { // Renamed internal component
             setSecondsPerQuestion(convertedSeconds);
             setTimeLeft(convertedSeconds);
         }
+        
+        // Respect server-side configuration whether to show instant score to students
+        if (data.quiz?.showInstantScore !== undefined) {
+            setShowInstantScore(Boolean(data.quiz.showInstantScore));
+        }
+
+        // Enforce per-attender access window (hours) if configured by creator
+        try {
+            const hours = parseInt(data.quiz?.timePerStudent || 0);
+            if (hours > 0) {
+                const accessKey = `quiz_access_${joinData.quizId}_${fingerprint}`;
+                const existing = localStorage.getItem(accessKey);
+                let allow = true;
+                if (existing) {
+                    try {
+                        const obj = JSON.parse(existing);
+                        if (obj.expires && Date.now() > obj.expires) {
+                            // expired -> overwrite
+                            allow = true;
+                        } else {
+                            // still within window -> allow
+                            allow = true;
+                        }
+                    } catch (e) { allow = true; }
+                }
+                if (allow) {
+                    const expires = Date.now() + hours * 3600 * 1000;
+                    localStorage.setItem(accessKey, JSON.stringify({ expires }));
+                    setAccessExpires(expires);
+                } else if (existing) {
+                    try {
+                        const obj = JSON.parse(existing);
+                        if (obj.expires) setAccessExpires(obj.expires);
+                    } catch (e) { /* ignore */ }
+                }
+            }
+        } catch (e) { console.error('access window set failed', e); }
 
         setQuizData(data);
         toast.success(`CONNECTION ESTABLISHED`);
@@ -193,13 +239,20 @@ const PlayQuizContent = () => { // Renamed internal component
         const handleSecurityBreach = () => {
             if (!document.fullscreenElement && quizData) {
                 //toast.error("SECURITY BREACH: Fullscreen exited. Submitting quiz...");
-                handleFinishQuiz(); // Force submit the quiz
+                handleSubmitExam(); // Force submit the quiz
             }
         };
 
         document.addEventListener('fullscreenchange', handleSecurityBreach);
         return () => document.removeEventListener('fullscreenchange', handleSecurityBreach);
     }, [quizData]);
+
+    // keep a ticking `now` so remaining time display updates
+    useEffect(() => {
+        if (!accessExpires) return;
+        const t = setInterval(() => setNow(Date.now()), 1000);
+        return () => clearInterval(t);
+    }, [accessExpires]);
 
     const handleSelectOption = (questionIdx, optionText) => {
         if (isSubmitted) return;
@@ -355,10 +408,22 @@ const PlayQuizContent = () => { // Renamed internal component
                         <div className="top-meta">
                             <span className="q-count">QUESTION {currentQuestionIdx + 1}/{quizData.questions.length}</span>
                             {(quizData.quiz?.timer || isSubmitted) && (
-                                <div className={isSubmitted ? "status-pill score" : "status-pill timer"}>
+                                <div className={isSubmitted ? (showInstantScore ? "status-pill score" : "status-pill submitted") : "status-pill timer"}>
                                     {isSubmitted ? <Trophy size={14} /> : <Timer size={14} />}
-                                    {isSubmitted ? `SCORE: ${score}/${quizData.questions.length}` : `${timeLeft}s`}
+                                    {isSubmitted ? (showInstantScore ? `SCORE: ${score}/${quizData.questions.length}` : `SUBMITTED`) : `${timeLeft}s`}
                                 </div>
+                            )}
+                            {accessExpires && Date.now() < accessExpires && (
+                                (() => {
+                                    const remaining = accessExpires - now;
+                                    const hrs = Math.floor(remaining / (1000 * 60 * 60));
+                                    const mins = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+                                    return (
+                                        <div style={{ marginLeft: 12 }} className="status-pill" title="Access window remaining">
+                                            <Timer size={12} /> ACCESS: {hrs}h {mins}m
+                                        </div>
+                                    );
+                                })()
                             )}
                         </div>
                         <h2>{isSubmitted ? "POST-SESSION ANALYSIS" : quizData.quiz.quizTitle}</h2>
@@ -371,40 +436,60 @@ const PlayQuizContent = () => { // Renamed internal component
                     )}
 
                     <ContentArea>
-                        {quizData.questions.map((q, idx) => {
-                            if (!isSubmitted && idx !== currentQuestionIdx) return null;
-                            return (
-                                <QuestionCard key={idx} $isSubmitted={isSubmitted}>
-                                    <div className="q-label">Q No.{idx + 1}</div>
-                                    <h3>{q.question}</h3>
-                                    <OptionsGrid>
-                                        {["opt1", "opt2", "opt3", "opt4"].map((optKey) => {
-                                            const optValue = q[optKey];
-                                            const isSelected = userAnswers[idx] === optValue;
-                                            const isCorrect = optValue === q[q.correctOpt];
-                                            let variant = "default";
-                                            if (isSubmitted) {
-                                                if (isCorrect) variant = "correct";
-                                                else if (isSelected) variant = "wrong";
-                                            } else if (isSelected) variant = "selected";
+                        {isSubmitted && !showInstantScore ? (
+                            <ZolviEntryCard style={{ textAlign: 'center', padding: '40px' }}>
+                                <Header style={{ marginBottom: '16px' }}>
+                                    <div className="icon-box"><Trophy size={28} /></div>
+                                    <div>
+                                        <h2>THANK YOU</h2>
+                                        <p>Submission received for <strong>{joinData.participantName}</strong></p>
+                                    </div>
+                                </Header>
+                                <div style={{ marginTop: 12, color: '#bbb' }}>
+                                    Your submission has been recorded. The instructor will release results when available.
+                                </div>
+                            </ZolviEntryCard>
+                        ) : (
+                            quizData.questions.map((q, idx) => {
+                                if (!isSubmitted && idx !== currentQuestionIdx) return null;
+                                return (
+                                    <QuestionCard key={idx} $isSubmitted={isSubmitted}>
+                                        <div className="q-label">Q No.{idx + 1}</div>
+                                        <h3>{q.question}</h3>
+                                        <OptionsGrid>
+                                            {["opt1", "opt2", "opt3", "opt4"].map((optKey) => {
+                                                const optValue = q[optKey];
+                                                const isSelected = userAnswers[idx] === optValue;
+                                                const isCorrect = optValue === q[q.correctOpt];
+                                                let variant = "default";
+                                                if (isSubmitted) {
+                                                    if (showInstantScore) {
+                                                        if (isCorrect) variant = "correct";
+                                                        else if (isSelected) variant = "wrong";
+                                                    } else {
+                                                        // don't reveal correct/wrong when instant score disabled
+                                                        if (isSelected) variant = "selected";
+                                                    }
+                                                } else if (isSelected) variant = "selected";
 
-                                            return (
-                                                <OptionButton
-                                                    key={optKey}
-                                                    variant={variant}
-                                                    onClick={() => handleSelectOption(idx, optValue)}
-                                                >
-                                                    <span className="opt-indicator" />
-                                                    <span className="opt-text">{optValue}</span>
-                                                    {isSubmitted && isCorrect && <CheckCircle2 size={18} className="res-icon" />}
-                                                    {isSubmitted && isSelected && !isCorrect && <XCircle size={18} className="res-icon" />}
-                                                </OptionButton>
-                                            );
-                                        })}
-                                    </OptionsGrid>
-                                </QuestionCard>
-                            );
-                        })}
+                                                return (
+                                                    <OptionButton
+                                                        key={optKey}
+                                                        variant={variant}
+                                                        onClick={() => handleSelectOption(idx, optValue)}
+                                                    >
+                                                        <span className="opt-indicator" />
+                                                        <span className="opt-text">{optValue}</span>
+                                                        {isSubmitted && showInstantScore && isCorrect && <CheckCircle2 size={18} className="res-icon" />}
+                                                        {isSubmitted && showInstantScore && isSelected && !isCorrect && <XCircle size={18} className="res-icon" />}
+                                                    </OptionButton>
+                                                );
+                                            })}
+                                        </OptionsGrid>
+                                    </QuestionCard>
+                                );
+                            })
+                        )}
                     </ContentArea>
 
                     <FooterActions>

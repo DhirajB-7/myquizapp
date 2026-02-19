@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import styled, { keyframes } from "styled-components";
 import toast, { Toaster } from "react-hot-toast";
-import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { FaEye, FaEyeSlash, FaGoogle, FaGithub } from "react-icons/fa";
 import { Layout, Mail, Lock, User, LogOut, ArrowRight, CheckCircle, Loader2, ShieldCheck, Cpu, Trash2, AlertTriangle, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -62,6 +62,39 @@ const Form = () => {
                 localStorage.clear();
             }
         }
+    }, []);
+
+    // Handle OAuth redirect token (e.g. /login?token=...)
+    useEffect(() => {
+      try {
+        if (typeof window === 'undefined') return;
+        const url = new URL(window.location.href);
+        const tokenParam = url.searchParams.get('token');
+        if (!tokenParam) return;
+
+        (async () => {
+          try {
+            // store token and fetch user
+            localStorage.setItem('token', tokenParam);
+            const res = await fetch(`/api/auth/me?token=${tokenParam}`);
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed to fetch user');
+            localStorage.setItem('user', JSON.stringify(data.user));
+            setIsAuth(true);
+            setUserName(data.user?.name || 'User');
+            setUserEmail(data.user?.email || '');
+            toast.success('Signed in successfully');
+            // remove token from URL
+            url.searchParams.delete('token');
+            window.history.replaceState({}, '', url.toString());
+            setTimeout(() => router.push('/'), 700);
+          } catch (err) {
+            toast.error(err.message || 'OAuth sign-in failed');
+          }
+        })();
+      } catch (err) {
+        console.error('OAuth token handling error', err);
+      }
     }, []);
 
     useEffect(() => {
@@ -286,6 +319,11 @@ const Form = () => {
             } catch (err) {
               console.error("Cleanup error:", err);
             }
+    };
+
+    const handleOAuth = (provider) => {
+      // navigate to API which will redirect to provider
+      window.location.href = `/api/auth/${provider}`;
     };
 
     const handleCloseDeleteModal = () => {
@@ -887,6 +925,11 @@ const Form = () => {
                                             </>
                                         )}
                                     </button>
+                                    <div style={{ marginTop: 12, display: 'flex', gap: 10, flexDirection: 'column' }}>
+                                      <button type="button" className="main-btn secondary-btn" onClick={() => handleOAuth('google')}><FaGoogle size={16} style={{marginRight: '8px'}} />Sign in with Google</button>
+                                      <button type="button" className="main-btn secondary-btn" onClick={() => handleOAuth('github')}><FaGithub size={16} style={{marginRight: '8px'}} />Sign in with GitHub</button>
+                                    </div>
+                                    
                                 </form>
                             </CardFace>
 
@@ -996,6 +1039,10 @@ const Form = () => {
                                                     </>
                                                 )}
                                             </button>
+                                              <div style={{ marginTop: 12, display: 'flex', gap: 10, flexDirection: 'column' }}>
+                                                <button type="button" className="main-btn secondary-btn" onClick={() => handleOAuth('google')}><FaGoogle size={16} style={{marginRight: '8px'}} />Sign up with Google</button>
+                                                <button type="button" className="main-btn secondary-btn" onClick={() => handleOAuth('github')}><FaGithub size={16} style={{marginRight: '8px'}} />Sign up with GitHub</button>
+                                              </div>
                                         </form>
                                     </>
                                 ) : (
@@ -1397,6 +1444,7 @@ const AuthContainer = styled.div`
   animation: ${fadeIn} 0.5s ease;
 
   .toggle-container {
+  margin-top: -350px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -1484,7 +1532,7 @@ const AuthContainer = styled.div`
   .flip-card__inner {
     position: relative;
     width: 100%;
-    min-height: 650px;
+    min-height: unset;
     transition: transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
     transform-style: preserve-3d;
     
@@ -1493,9 +1541,9 @@ const AuthContainer = styled.div`
     }
   }
 
-  @media (max-width: 480px) {
+  @media (max-width: 400px) {
     .flip-card__inner {
-      min-height: 700px;
+      min-height: unset;
     }
   }
 `;
@@ -1503,18 +1551,18 @@ const AuthContainer = styled.div`
 const CardFace = styled.div`
   position: absolute;
   width: 100%;
-  height: 100%;
+  min-height: 100%;
   backface-visibility: hidden;
   background: linear-gradient(145deg, #1a1a1a, #0f0f0f);
   border: 2px solid #2a2a2a;
-  padding: 45px 35px;
+  padding: 28px 24px;
   display: flex;
   flex-direction: column;
   box-shadow: 
     0 25px 70px rgba(0, 0, 0, 0.5),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
   transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-  overflow: hidden;
+  overflow: visible;
 
   &::before {
     content: '';
@@ -1564,14 +1612,14 @@ const CardFace = styled.div`
 
   .form-header {
     text-align: center;
-    margin-bottom: 28px;
+    margin-bottom: 18px;
     
     .icon-wrapper {
       display: inline-flex;
-      padding: 18px;
+      padding: 12px;
       background: rgba(255, 255, 255, 0.05);
       border: 2px solid rgba(255, 255, 255, 0.1);
-      margin-bottom: 20px;
+      margin-bottom: 12px;
       transition: all 0.3s;
       
       svg {
@@ -1590,15 +1638,15 @@ const CardFace = styled.div`
     }
     
     h3 {
-      font-size: 1.75rem;
+      font-size: 1.3rem;
       font-weight: 700;
       color: #fff;
-      margin-bottom: 8px;
+      margin-bottom: 4px;
       letter-spacing: -0.5px;
     }
     
     .subtitle {
-      font-size: 0.9rem;
+      font-size: 0.8rem;
       color: #888;
       font-weight: 400;
     }
@@ -1611,7 +1659,7 @@ const CardFace = styled.div`
   }
 
   .input-group {
-    margin-bottom: 16px;
+    margin-bottom: 12px;
     
     label {
       display: flex;
@@ -1629,7 +1677,7 @@ const CardFace = styled.div`
       background: #0a0a0a;
       border: 2px solid #222;
       border-radius: 6px;
-      padding: 14px 16px;
+      padding: 10px 12px;
       color: #fff;
       outline: none;
       transition: all 0.3s;
@@ -1666,7 +1714,7 @@ const CardFace = styled.div`
   .grid-2 {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 14px;
+    gap: 10px;
     
     @media (max-width: 480px) {
       grid-template-columns: 1fr;
@@ -1820,11 +1868,11 @@ const CardFace = styled.div`
   }
 
   .otp-footer {
-    margin-top: 30px;
+    margin-top: 16px;
     text-align: center;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 10px;
     
     .cooldown {
       font-size: 0.85rem;

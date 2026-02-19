@@ -34,7 +34,9 @@ const CreatePage = () => {
         isPrivate: false,
         status: false,
         timeLimit: false,
-        questionPerMin: ""
+        questionPerMin: "",
+        timePerStudent: "",
+        showInstantScore: false
     });
 
     const [questions, setQuestions] = useState([
@@ -44,6 +46,14 @@ const CreatePage = () => {
 
     useEffect(() => {
         const userData = localStorage.getItem("user");
+        const token = localStorage.getItem("token");
+        
+        // Check if user is logged in, redirect to login if not
+        if (!userData || !token) {
+            window.location.href = '/login';
+            return;
+        }
+        
         if (userData) {
             try {
                 const parsedUser = JSON.parse(userData);
@@ -114,7 +124,9 @@ const CreatePage = () => {
             status: false,
             timer: Boolean(quizInfo.timeLimit),
             isPrivate: Boolean(quizInfo.isPrivate),
-            timePerQ: quizInfo.timeLimit ? parseInt(quizInfo.questionPerMin) : 0
+            timePerQ: quizInfo.timeLimit ? parseInt(quizInfo.questionPerMin) : 0,
+            timePerStudent: quizInfo.timePerStudent ? parseInt(quizInfo.timePerStudent) : 0,
+            showInstantScore: Boolean(quizInfo.showInstantScore)
         };
 
         try {
@@ -276,7 +288,7 @@ const CreatePage = () => {
 
                             <DualGrid>
                                 <FormGroup>
-                                    <label><Timer size={12} /> TIME LIMIT</label>
+                                    <label><Timer size={12} /> TIMER PER QUESTION</label>
                                     <BinaryToggle>
                                         <button className={quizInfo.timeLimit ? "active" : ""} onClick={() => handleInfoChange('timeLimit', true)}>ENABLED</button>
                                         <button className={!quizInfo.timeLimit ? "active" : ""} onClick={() => handleInfoChange('timeLimit', false)}>DISABLED</button>
@@ -292,10 +304,25 @@ const CreatePage = () => {
                                 </FormGroup>
                             </DualGrid>
 
-                            {quizInfo.timeLimit && (
+                            <DualGrid>
+                                <FormGroup>
+                                    <label><CheckCircle size={12} /> INSTANT SCORE DISPLAY</label>
+                                    <BinaryToggle>
+                                        <button className={quizInfo.showInstantScore ? "active" : ""} onClick={() => handleInfoChange('showInstantScore', true)}>YES</button>
+                                        <button className={!quizInfo.showInstantScore ? "active" : ""} onClick={() => handleInfoChange('showInstantScore', false)}>NO</button>
+                                    </BinaryToggle>
+                                </FormGroup>
+                            </DualGrid>
+
+                            {quizInfo.timeLimit ? (
                                 <FormGroup>
                                     <label><Clock size={12} /> MINUTES PER QUESTION</label>
-                                    <input type="number" className="zolvi-input" value={quizInfo.questionPerMin} onChange={(e) => handleInfoChange('questionPerMin', e.target.value)} placeholder="e.g. 1" />
+                                    <input type="number" className="zolvi-input" value={quizInfo.questionPerMin} onChange={(e) => handleInfoChange('questionPerMin', e.target.value)} placeholder="e.g. 1 Min" />
+                                </FormGroup>
+                            ) : (
+                                <FormGroup>
+                                    <label><Clock size={12} /> WINDOW OPEN FOR STUDENT (HOURS)</label>
+                                    <input type="number" className="zolvi-input" value={quizInfo.timePerStudent} onChange={(e) => handleInfoChange('timePerStudent', e.target.value)} placeholder="e.g. 24 HR" />
                                 </FormGroup>
                             )}
 
