@@ -1,25 +1,16 @@
 import { NextResponse } from 'next/server';
-import mongoose from 'mongoose';
 import User from '../../../../models/User';
 import jwt from 'jsonwebtoken';
-
-const connectDB = async () => {
-  console.log('mongo readyState before connect', mongoose.connection.readyState);
-  const uri = process.env.MONGODB_URI;
-  if (!uri) console.warn('MONGODB_URI is not defined in environment!');
-  else console.log('Using MONGODB_URI prefix:', uri.slice(0, 30) + '...');
-  if (mongoose.connection.readyState === 1) return;
-  
-  try {
-    await mongoose.connect(uri);
-    console.log('mongo connected, readyState=', mongoose.connection.readyState);
-  } catch (err) {
-    console.error('MongoDB Connection Error:', err);
-  }
-};
+import connectToDatabase from '@/lib/mongodb';
 
 export async function GET(req) {
-  await connectDB();
+  try {
+    await connectToDatabase();
+  } catch (err) {
+    console.error('MongoDB connection failed:', err);
+    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_FRONTEND_URL}/login?error=db_connection_failed`);
+  }
+
   const { searchParams } = new URL(req.url);
   const code = searchParams.get('code');
   const error = searchParams.get('error');
@@ -104,27 +95,28 @@ export async function GET(req) {
         providerId: String(profile.id),
         avatar: profile.avatar_url
       });
-      console.log('Creating new user:', { email, name: user.name });
-      try {
-        await user.save();
-        console.log('GitHub user saved id=', user._id);
-      } catch(e){ console.error('GitHub user save error', e); throw e; }
+      console.log('Creating new GitHub user:', { email, name: user.name });
     } else {
-      console.log('Updating existing user:', email);
+      console.log('Updating existing user with GitHub:', email);
       user.provider = 'github';
       user.providerId = String(profile.id);
       user.avatar = profile.avatar_url;
-      try {
-        await user.save();
-        console.log('GitHub user updated id=', user._id);
-      } catch(e){ console.error('GitHub user update error', e); throw e; }
+    }
+
+    // Save user to database with proper error handling
+    try {
+      await user.save();
+      console.log('GitHub user saved successfully, id=', user._id);
+    } catch (saveError) {
+      console.error('GitHub user save error:', saveError.message, saveError);
+      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_FRONTEND_URL}/login?error=db_save_failed`);
     }
 
     const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '30d' });
     const redirectUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL}/login?token=${token}`;
     return NextResponse.redirect(redirectUrl);
   } catch (err) {
-    console.error('GitHub OAuth error:', err.message, err.stack);
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_FRONTEND_URL}/login?error=${encodeURIComponent(err.message)}`);
+    console.error('GitHub OAuth Critical Error:', err.message, err.stack);
+    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_FRONTEND_URL}/login?error=oauth_server_error`);
   }
 }

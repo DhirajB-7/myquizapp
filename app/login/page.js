@@ -75,12 +75,26 @@ const Form = () => {
         // Handle OAuth error
         if (errorParam) {
           const errorMsg = decodeURIComponent(errorParam).replace(/_/g, ' ');
-          const userFriendlyMsg = 
-            errorMsg.includes('access_denied') ? 'You denied the OAuth connection. Please try again.' :
-            errorMsg.includes('invalid') ? 'Invalid OAuth credentials. Please try again.' :
-            errorMsg.includes('email') ? 'Unable to fetch email from your account. Please use password login.' :
-            errorMsg.includes('timeout') ? 'OAuth connection timed out. Please try again.' :
-            `OAuth Error: ${errorMsg}`;
+          let userFriendlyMsg;
+          
+          if (errorMsg.includes('access_denied')) {
+            userFriendlyMsg = 'You denied the OAuth connection. Please try again.';
+          } else if (errorMsg.includes('invalid')) {
+            userFriendlyMsg = 'Invalid OAuth credentials. Please try again.';
+          } else if (errorMsg.includes('email')) {
+            userFriendlyMsg = 'Unable to fetch email from your account. Please use password login.';
+          } else if (errorMsg.includes('timeout')) {
+            userFriendlyMsg = 'OAuth connection timed out. Please try again.';
+          } else if (errorMsg.includes('db_connection_failed')) {
+            userFriendlyMsg = 'Database connection failed. Please try again in a moment.';
+          } else if (errorMsg.includes('db_save_failed')) {
+            userFriendlyMsg = 'Failed to save your profile. Please try again.';
+          } else if (errorMsg.includes('oauth_server_error')) {
+            userFriendlyMsg = 'OAuth server error. Please try again in a moment.';
+          } else {
+            userFriendlyMsg = `OAuth Error: ${errorMsg}`;
+          }
+          
           toast.error(userFriendlyMsg);
           url.searchParams.delete('error');
           window.history.replaceState({}, '', url.toString());
@@ -338,8 +352,9 @@ const Form = () => {
             setDeleteEmailInput("");
             setTimeout(() => router.push("/"), 1000);
         } catch (err) {
-            toast.error(err.message, { id: loadingToast });
-            setDeleteError(err.message);
+            const errorMsg = err.message || "An error occurred while deleting your account";
+            toast.error(errorMsg, { id: loadingToast });
+            setDeleteError(errorMsg);
         } finally {
             setIsDeleting(false);
         }

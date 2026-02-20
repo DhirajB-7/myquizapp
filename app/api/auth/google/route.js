@@ -1,24 +1,15 @@
 import { NextResponse } from 'next/server';
-import mongoose from 'mongoose';
 import User from '../../../../models/User';
 import jwt from 'jsonwebtoken';
-
-const connectDB = async () => {
-    console.log('mongo readyState before connect', mongoose.connection.readyState);
-    const uri = process.env.MONGODB_URI;
-    if (!uri) console.warn('MONGODB_URI is not defined in environment!');
-    else console.log('Using MONGODB_URI prefix:', uri.slice(0, 30) + '...');
-    if (mongoose.connection.readyState === 1) return;
-    try {
-        await mongoose.connect(uri);
-        console.log('mongo connected, readyState=', mongoose.connection.readyState);
-    } catch (err) {
-        console.error("MongoDB Connection Error:", err);
-    }
-};
+import connectToDatabase from '@/lib/mongodb';
 
 export async function GET(req) {
-    await connectDB();
+    try {
+        await connectToDatabase();
+    } catch (err) {
+        console.error('MongoDB connection failed:', err);
+        return NextResponse.redirect(`${process.env.FRONTEND_URL}/login?error=db_connection_failed`);
+    }
 
     const { searchParams } = new URL(req.url);
     const code = searchParams.get('code');
@@ -101,12 +92,13 @@ export async function GET(req) {
             user.avatar = profile.picture || user.avatar;
         }
 
-        // 7. Save the user (The fix for your validation error)
+        // 7. Save the user to database
         try {
             await user.save();
+            console.log('Google user saved successfully, id=', user._id);
         } catch (saveError) {
-            console.error("Mongoose Save Error:", saveError.message);
-            return NextResponse.redirect(`${process.env.FRONTEND_URL}/login?error=db_validation_failed`);
+            console.error("Mongoose Save Error:", saveError.message, saveError);
+            return NextResponse.redirect(`${process.env.FRONTEND_URL}/login?error=db_save_failed`);
         }
 
         // 8. Generate App JWT
@@ -121,7 +113,7 @@ export async function GET(req) {
         return NextResponse.redirect(redirectUrl);
 
     } catch (err) {
-        console.error('Critical Auth Error:', err);
-        return NextResponse.redirect(`${process.env.FRONTEND_URL}/login?error=server_error`);
+        console.error('Google OAuth Critical Error:', err.message, err.stack);
+        return NextResponse.redirect(`${process.env.FRONTEND_URL}/login?error=oauth_server_error`);
     }
 }

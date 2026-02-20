@@ -46,7 +46,7 @@ export async function DELETE(req) {
 
     if (!user) {
       return NextResponse.json(
-        { message: "User not found" },
+        { message: "Account not found. It may have already been deleted." },
         { status: 404 }
       );
     }
@@ -54,14 +54,19 @@ export async function DELETE(req) {
     // Verify that the provided email matches the authenticated user's email
     if (user.email.toLowerCase() !== email.toLowerCase()) {
       return NextResponse.json(
-        { message: "Email does not match your account" },
+        { message: "The email you entered does not match your account." },
         { status: 403 }
       );
     }
 
+    // Log account deletion for security audit
+    console.log(`Account deletion initiated - Email: ${user.email}, Provider: ${user.provider}, ID: ${user._id}`);
+
     // Delete the user from database
     await User.findByIdAndDelete(decoded.userId);
     await Session.deleteMany({ userId: decoded.userId });
+    
+    console.log(`Account deleted successfully - ID: ${decoded.userId}`);
     return NextResponse.json(
       {
         message: "Account deleted successfully",
@@ -71,9 +76,9 @@ export async function DELETE(req) {
     );
 
   } catch (error) {
-    console.error("DELETE_ACCOUNT_ERROR:", error);
+    console.error("DELETE_ACCOUNT_ERROR:", error.message, error);
     return NextResponse.json(
-      { message: "Internal Server Error" },
+      { message: "An error occurred while deleting your account. Please try again." },
       { status: 500 }
     );
   }
