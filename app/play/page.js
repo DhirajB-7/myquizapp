@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, Suspense } from 'react';
 import styled, { keyframes, css, createGlobalStyle } from 'styled-components';
-import { Zap, Loader2, EyeOff, MonitorSmartphone, Trophy, RefreshCcw, User, Hash, CheckCircle2, AlertTriangle, XCircle, Timer, ChevronRight, ShieldAlert, GraduationCap, Layers, BookOpen } from 'lucide-react';
+import { Zap, Loader2, EyeOff, MonitorSmartphone, Trophy, RefreshCcw, User, Hash, CheckCircle2, AlertTriangle, XCircle, Timer, ChevronRight, ShieldAlert, GraduationCap, Layers, BookOpen, ChevronLeft } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { useSearchParams, useRouter } from 'next/navigation';
 import CryptoJS from 'crypto-js';
@@ -43,6 +43,51 @@ const CLASS_OPTIONS = [
 
 const DIVISION_OPTIONS = ["A", "B", "C", "D", "E", "F"];
 
+// --- CONFIRMATION MODAL COMPONENT ---
+const ConfirmModal = ({ isOpen, onConfirm, onCancel, questionsCount, answeredCount }) => {
+    if (!isOpen) return null;
+    const unanswered = questionsCount - answeredCount;
+    return (
+        <ModalOverlay>
+            <ModalBox>
+                <ModalIconBox>
+                    <AlertTriangle size={28} color="orange" />
+                </ModalIconBox>
+                <ModalTitle>SUBMIT EXAM?</ModalTitle>
+                <ModalBody>
+                    <div className="stat-row">
+                        <span className="label">Total Questions</span>
+                        <span className="value">{questionsCount}</span>
+                    </div>
+                    <div className="stat-row answered">
+                        <span className="label">Answered</span>
+                        <span className="value">{answeredCount}</span>
+                    </div>
+                    {unanswered > 0 && (
+                        <div className="stat-row unanswered">
+                            <span className="label">Unanswered</span>
+                            <span className="value warn">{unanswered}</span>
+                        </div>
+                    )}
+                    <p className="warn-text">
+                        {unanswered > 0
+                            ? `You have ${unanswered} unanswered question${unanswered > 1 ? 's' : ''}. Once submitted, you cannot make changes.`
+                            : "You have answered all questions. Once submitted, you cannot make changes."}
+                    </p>
+                </ModalBody>
+                <ModalActions>
+                    <ModalCancelBtn onClick={onCancel}>
+                        NO, GO BACK
+                    </ModalCancelBtn>
+                    <ModalConfirmBtn onClick={onConfirm}>
+                        YES, SUBMIT
+                    </ModalConfirmBtn>
+                </ModalActions>
+            </ModalBox>
+        </ModalOverlay>
+    );
+};
+
 const PlayQuizContent = () => {
     const searchParams = useSearchParams();
     const router = useRouter();
@@ -61,6 +106,7 @@ const PlayQuizContent = () => {
     const [showInstantScore, setShowInstantScore] = useState(false);
     const [accessExpires, setAccessExpires] = useState(null);
     const [now, setNow] = useState(Date.now());
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
 
     const [joinData, setJoinData] = useState({
         participantName: '',
@@ -150,12 +196,30 @@ const PlayQuizContent = () => {
 
         const isLastQuestion = currentQuestionIdx === quizData.questions.length - 1;
         if (isLastQuestion) {
-            handleSubmitExam();
+            // Show confirmation modal instead of directly submitting
+            setShowConfirmModal(true);
         } else {
             setCurrentQuestionIdx(prev => prev + 1);
             if (quizData.quiz?.timer) setTimeLeft(secondsPerQuestion);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
+    };
+
+    const handlePrevQuestion = () => {
+        if (currentQuestionIdx > 0) {
+            setCurrentQuestionIdx(prev => prev - 1);
+            if (quizData.quiz?.timer) setTimeLeft(secondsPerQuestion);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    };
+
+    const handleConfirmSubmit = () => {
+        setShowConfirmModal(false);
+        handleSubmitExam();
+    };
+
+    const handleCancelSubmit = () => {
+        setShowConfirmModal(false);
     };
 
     const getDeviceFingerprint = () => {
@@ -328,8 +392,6 @@ const PlayQuizContent = () => {
             rollNo: joinData.rollNumber.toString()
         };
 
-        // --- FIX: Log the data BEFORE the fetch call ---
-
         setIsLoading(true);
         try {
             const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/Play/Submit`, {
@@ -339,7 +401,6 @@ const PlayQuizContent = () => {
                     'ngrok-skip-browser-warning': '69420',
                     'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY
                 },
-                // --- FIX: Body follows the headers correctly ---
                 body: JSON.stringify(finalSubmission)
             });
             console.log("Final Submission Data:", finalSubmission);
@@ -414,6 +475,17 @@ const PlayQuizContent = () => {
             <GlobalSecurity />
             <Toaster toastOptions={{ style: { background: '#0a0a0a', color: '#fff', border: '1px solid #222' } }} />
 
+            {/* CONFIRMATION MODAL */}
+            {quizData && (
+                <ConfirmModal
+                    isOpen={showConfirmModal}
+                    onConfirm={handleConfirmSubmit}
+                    onCancel={handleCancelSubmit}
+                    questionsCount={quizData.questions.length}
+                    answeredCount={Object.keys(userAnswers).length}
+                />
+            )}
+
             {!quizData ? (
                 <EntryWrapper style={{ maxWidth: '520px' }}>
                     <StatusTag><ShieldAlert size={12} /> ENCRYPTED SESSION</StatusTag>
@@ -445,16 +517,14 @@ const PlayQuizContent = () => {
                                 <div className="input-wrapper">
                                     <User size={16} className="input-icon" />
                                     <input
-                                        type="email" // Changed from text to email
+                                        type="email"
                                         placeholder="example@email.com"
                                         value={joinData.email}
                                         required
                                         onChange={(e) => setJoinData({ ...joinData, email: e.target.value })}
-                                        // Added basic HTML5 validation pattern
                                         pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,4}$"
                                     />
                                 </div>
-                                {/* Optional: Simple validation message */}
                                 {joinData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(joinData.email) && (
                                     <small style={{ color: '#ff4d4d', fontSize: '10px', marginTop: '5px' }}>
                                         Please enter a valid email format.
@@ -628,19 +698,28 @@ const PlayQuizContent = () => {
 
                     <FooterActions>
                         {!isSubmitted ? (
-                            <PrimaryButton onClick={handleNextQuestion} disabled={isLoading}>
-                                {isLoading ? (
-                                    <>
-                                        <Loader2 className="spinner" size={20} />
-                                        <span>SUBMITTING...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        {currentQuestionIdx === quizData.questions.length - 1 ? "FINISH" : "NEXT"}
-                                        <ChevronRight size={20} />
-                                    </>
+                            <NavButtonGroup>
+                                {/* BACK BUTTON - only shown if not on first question */}
+                                {currentQuestionIdx > 0 && (
+                                    <BackButton onClick={handlePrevQuestion} disabled={isLoading}>
+                                        <ChevronLeft size={20} />
+                                        BACK
+                                    </BackButton>
                                 )}
-                            </PrimaryButton>
+                                <PrimaryButton onClick={handleNextQuestion} disabled={isLoading} style={{ flex: 1 }}>
+                                    {isLoading ? (
+                                        <>
+                                            <Loader2 className="spinner" size={20} />
+                                            <span>SUBMITTING...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            {currentQuestionIdx === quizData.questions.length - 1 ? "FINISH" : "NEXT"}
+                                            <ChevronRight size={20} />
+                                        </>
+                                    )}
+                                </PrimaryButton>
+                            </NavButtonGroup>
                         ) : (
                             <SecondaryButton onClick={() => window.location.reload()}>
                                 <RefreshCcw size={18} /> EXIT ARENA
@@ -663,6 +742,7 @@ const PlayQuiz = () => (
 // --- Animations ---
 const spin = keyframes` from { transform: rotate(0deg); } to { transform: rotate(360deg); } `;
 const fadeIn = keyframes` from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } `;
+const modalFadeIn = keyframes` from { opacity: 0; transform: scale(0.92) translateY(12px); } to { opacity: 1; transform: scale(1) translateY(0); } `;
 
 // --- Styled Components ---
 const PageContainer = styled.div`
@@ -1035,8 +1115,40 @@ const FooterActions = styled.div`
     animation: ${fadeIn} 0.5s ease-out;
 `;
 
-const PrimaryButton = styled.button`
+// New wrapper for back + next/finish buttons
+const NavButtonGroup = styled.div`
+    display: flex;
+    gap: 12px;
     width: 100%;
+    align-items: stretch;
+`;
+
+const BackButton = styled.button`
+    background: transparent;
+    border: 2px solid #333;
+    color: #666;
+    padding: 18px 24px;
+    font-weight: 900;
+    font-size: 12px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    border-radius: 8px;
+    flex-shrink: 0;
+    &:hover:not(:disabled) {
+        border-color: #888;
+        color: #ccc;
+        background: #111;
+        transform: translateY(-2px);
+    }
+    &:disabled { opacity: 0.3; cursor: not-allowed; }
+`;
+
+const PrimaryButton = styled.button`
     background: linear-gradient(135deg, #fff 0%, #e0e0e0 100%);
     color: #000;
     border: none;
@@ -1051,12 +1163,14 @@ const PrimaryButton = styled.button`
     transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     border-radius: 8px;
     box-shadow: 0 8px 20px rgba(255, 255, 255, 0.15);
+    width: 100%;
     &:hover { 
         background: linear-gradient(135deg, #e0e0e0 0%, #d0d0d0 100%);
         transform: translateY(-3px);
         box-shadow: 0 12px 28px rgba(255, 255, 255, 0.2);
     }
     &:active { transform: translateY(-1px); }
+    .spinner { animation: ${spin} 1s linear infinite; }
 `;
 
 const SecondaryButton = styled.button`
@@ -1072,6 +1186,126 @@ const SecondaryButton = styled.button`
     gap: 10px;
     transition: 0.2s;
     &:hover { border-color: #fff; color: #fff; }
+`;
+
+// --- MODAL STYLED COMPONENTS ---
+const ModalOverlay = styled.div`
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: ${fadeIn} 0.2s ease-out;
+`;
+
+const ModalBox = styled.div`
+    background: #111;
+    border: 1px solid #2a2a2a;
+    border-radius: 16px;
+    padding: 40px 36px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px #1e1e1e;
+    animation: ${modalFadeIn} 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    text-align: center;
+`;
+
+const ModalIconBox = styled.div`
+    width: 64px;
+    height: 64px;
+    border: 1px solid #2a2a2a;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    background: #1a1a1a;
+`;
+
+const ModalTitle = styled.h3`
+    font-size: 1.2rem;
+    font-weight: 900;
+    letter-spacing: 2px;
+    color: #fff;
+    margin: 0 0 24px;
+    text-transform: uppercase;
+`;
+
+const ModalBody = styled.div`
+    margin-bottom: 32px;
+    .stat-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 16px;
+        border-radius: 6px;
+        margin-bottom: 8px;
+        background: #0a0a0a;
+        border: 1px solid #1a1a1a;
+        .label { font-size: 11px; font-weight: 700; color: #555; letter-spacing: 1px; text-transform: uppercase; }
+        .value { font-size: 14px; font-weight: 800; color: #ccc; }
+        .value.warn { color: #ff5555; }
+    }
+    .warn-text {
+        font-size: 12px;
+        color: #666;
+        line-height: 1.6;
+        margin-top: 16px;
+        padding: 12px 16px;
+        border: 1px solid #1e1e1e;
+        border-radius: 6px;
+        background: #0a0a0a;
+        text-align: left;
+    }
+`;
+
+const ModalActions = styled.div`
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+`;
+
+const ModalCancelBtn = styled.button`
+    background: transparent;
+    border: 2px solid #2a2a2a;
+    color: #666;
+    padding: 14px 20px;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 1.5px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    &:hover {
+        border-color: #555;
+        color: #ccc;
+        background: #1a1a1a;
+    }
+`;
+
+const ModalConfirmBtn = styled.button`
+    background: linear-gradient(135deg, #fff 0%, #e0e0e0 100%);
+    border: none;
+    color: #000;
+    padding: 14px 20px;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 1.5px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    text-transform: uppercase;
+    box-shadow: 0 4px 14px rgba(255, 255, 255, 0.15);
+    &:hover {
+        background: linear-gradient(135deg, #e0e0e0 0%, #d0d0d0 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(255, 255, 255, 0.2);
+    }
 `;
 
 export default PlayQuiz;
