@@ -123,17 +123,7 @@ const Form = () => {
         }
     }, [forgotPasswordTimer]);
 
-    const handleToggle = () => {
-        setIsFlipped(!isFlipped);
-        setStep(1);
-        setSignupError("");
-        setLoginError("");
-        setSignupData({ name: "", email: "", password: "" });
-        setLoginData({ email: "", password: "" });
-        setConfirmPassword("");
-        setShowPassword(false);
-        setShowConfirmPassword(false);
-    };
+   
 
     const isEmailValid = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     const validatePassword = (password) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/.test(password);
@@ -256,7 +246,7 @@ const Form = () => {
         try {
             const token = localStorage.getItem("token");
             if (token) {
-                await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/logout`, {
+                await fetch(`/api/auth/logout`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ token })

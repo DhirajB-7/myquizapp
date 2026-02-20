@@ -1,5 +1,5 @@
 import connectToDatabase from "@/lib/mongodb";
-import User from "@/models/UserQuiz";
+import User from "@/models/User";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { NextResponse } from "next/server";

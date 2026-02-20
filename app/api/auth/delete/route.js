@@ -1,5 +1,5 @@
 import connectToDatabase from "@/lib/mongodb";
-import User from "@/models/UserQuiz";
+import User from "@/models/User";
 import jwt from "jsonwebtoken";
 import { NextResponse } from "next/server";
 import Session from "@/models/Session";

@@ -22,7 +22,7 @@ export async function GET(req) {
     // 1. Handle OAuth errors from Google
     if (error) {
         console.error('OAuth error from Google:', error);
-        return NextResponse.redirect(`${process.env.NEXT_PUBLIC_BASE_URL}/login?error=${error}`);
+        return NextResponse.redirect(`${process.env.FRONTEND_URL}/login?error=${error}`);
     }
 
     // 2. Initial Redirect to Google
@@ -55,8 +55,8 @@ export async function GET(req) {
         const tokenData = await tokenRes.json();
 
         if (!tokenData.access_token) {
-            console.error('Failed to get access token:', tokenData);
-            return NextResponse.redirect(`${process.env.NEXT_PUBLIC_BASE_URL}/login?error=token_exchange_failed`);
+            console.log('Failed to get access token:', tokenData);
+            return NextResponse.redirect(`${process.env.FRONTEND_URL}/login?error=token_exchange_failed`);
         }
 
         // 4. Fetch User Profile (Using OIDC userinfo endpoint)
@@ -71,7 +71,7 @@ export async function GET(req) {
         
         if (!profile.email) {
             console.error('Google did not return an email:', profile);
-            return NextResponse.redirect(`${process.env.NEXT_PUBLIC_BASE_URL}/login?error=no_email_permission`);
+            return NextResponse.redirect(`${process.env.FRONTEND_URL}/login?error=no_email_permission`);
         }
 
         const userEmail = String(profile.email).toLowerCase().trim();
@@ -101,7 +101,7 @@ export async function GET(req) {
             await user.save();
         } catch (saveError) {
             console.error("Mongoose Save Error:", saveError.message);
-            return NextResponse.redirect(`${process.env.NEXT_PUBLIC_BASE_URL}/login?error=db_validation_failed`);
+            return NextResponse.redirect(`${process.env.FRONTEND_URL}/login?error=db_validation_failed`);
         }
 
         // 8. Generate App JWT
@@ -112,11 +112,11 @@ export async function GET(req) {
         );
 
         // 9. Final Redirect with Token
-        const redirectUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/login?token=${token}`;
+        const redirectUrl = `${process.env.FRONTEND_URL}/login?token=${token}`;
         return NextResponse.redirect(redirectUrl);
 
     } catch (err) {
         console.error('Critical Auth Error:', err);
-        return NextResponse.redirect(`${process.env.NEXT_PUBLIC_BASE_URL}/login?error=server_error`);
+        return NextResponse.redirect(`${process.env.FRONTEND_URL}/login?error=server_error`);
     }
 }

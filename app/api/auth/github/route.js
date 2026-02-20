@@ -19,7 +19,7 @@ export async function GET(req) {
   // Handle OAuth errors
   if (error) {
     console.error('GitHub OAuth error:', error);
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_BASE_URL}/login?error=${error}`);
+    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_FRONTEND_URL}/login?error=${error}`);
   }
 
   if (!code) {
@@ -29,7 +29,10 @@ export async function GET(req) {
       redirect_uri: process.env.GITHUB_REDIRECT_URI,
       scope: 'user:email'
     });
-    return NextResponse.redirect(`https://github.com/login/oauth/authorize?${params.toString()}`);
+    const authUrl = `https://github.com/login/oauth/authorize?${params.toString()}`;
+    console.log('Redirecting user to GitHub OAuth endpoint ->', authUrl);
+    console.log('Using redirect_uri:', process.env.GITHUB_REDIRECT_URI);
+    return NextResponse.redirect(authUrl);
   }
 
   try {
@@ -49,7 +52,7 @@ export async function GET(req) {
 
     if (!tokenData.access_token) {
       console.error('No access token from GitHub:', tokenData);
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_BASE_URL}/login?error=no_token`);
+      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_FRONTEND_URL}/login?error=no_token`);
     }
 
     const profileRes = await fetch('https://api.github.com/user', {
@@ -74,14 +77,14 @@ export async function GET(req) {
 
     if (!email) {
       console.error('No email from GitHub:', { profile, emails });
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_BASE_URL}/login?error=no_email_found`);
+      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_FRONTEND_URL}/login?error=no_email_found`);
     }
 
     // Ensure email is not null or undefined before creating user
     email = String(email).toLowerCase().trim();
     if (!email || email === 'null' || email === 'undefined') {
       console.error('Invalid email:', email);
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_BASE_URL}/login?error=invalid_email`);
+      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_FRONTEND_URL}/login?error=invalid_email`);
     }
 
     let user = await User.findOne({ email });
@@ -104,10 +107,10 @@ export async function GET(req) {
     }
 
     const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '30d' });
-    const redirectUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/login?token=${token}`;
+    const redirectUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL}/login?token=${token}`;
     return NextResponse.redirect(redirectUrl);
   } catch (err) {
     console.error('GitHub OAuth error:', err.message, err.stack);
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_BASE_URL}/login?error=${encodeURIComponent(err.message)}`);
+    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_FRONTEND_URL}/login?error=${encodeURIComponent(err.message)}`);
   }
 }
