@@ -171,7 +171,7 @@ const PlayQuizContent = () => {
     const searchParams = useSearchParams();
     const router = useRouter();
 
-    const [isDark, setIsDark] = useState(true);
+    const [isDark, setIsDark] = useState(false);
     const theme = isDark ? darkTheme : lightTheme;
 
     const [hasAcceptedRules, setHasAcceptedRules] = useState(false);
