@@ -5,7 +5,7 @@ import User from '../../../../models/User';
 
 const connectDB = async () => {
   if (mongoose.connection.readyState === 1) return;
-  await mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
+  await mongoose.connect(process.env.MONGODB_URI);
 };
 
 export async function GET(req) {

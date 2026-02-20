@@ -11,7 +11,7 @@ const connectDB = async () => {
   if (mongoose.connection.readyState === 1) return;
   
   try {
-    await mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    await mongoose.connect(uri);
     console.log('mongo connected, readyState=', mongoose.connection.readyState);
   } catch (err) {
     console.error('MongoDB Connection Error:', err);

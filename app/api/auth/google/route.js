@@ -10,7 +10,7 @@ const connectDB = async () => {
     else console.log('Using MONGODB_URI prefix:', uri.slice(0, 30) + '...');
     if (mongoose.connection.readyState === 1) return;
     try {
-        await mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+        await mongoose.connect(uri);
         console.log('mongo connected, readyState=', mongoose.connection.readyState);
     } catch (err) {
         console.error("MongoDB Connection Error:", err);
