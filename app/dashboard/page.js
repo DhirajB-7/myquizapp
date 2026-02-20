@@ -772,7 +772,7 @@ const UserDashboard = () => {
                         </ActionWrapper>
                       </div>
 
-                      <h3 className="quiz-title">Quiz Title: {quiz.quizTitle || "UNTITLED"}</h3><br />
+                      <h3 className="quiz-title"> {quiz.quizTitle || "UNTITLED"}</h3><br />
                       <DataGrid>
                         <div className="data-item">
                           {quiz.timeLimit ? <span>N/A</span> : (
