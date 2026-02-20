@@ -551,26 +551,33 @@ const PlayQuizContent = () => {
                         <QuizHeader>
                             <div className="top-meta">
                                 <span className="q-count">QUESTION {currentQuestionIdx + 1}/{quizData.questions.length}</span>
-                                {(quizData.quiz?.timer || isSubmitted) && (
-                                    <div className={isSubmitted ? (showInstantScore ? "status-pill score" : "status-pill submitted") : "status-pill timer"}>
-                                        {isSubmitted ? <Trophy size={14} /> : <Timer size={14} />}
-                                        {isSubmitted ? (showInstantScore ? `SCORE: ${score}/${quizData.questions.length}` : `SUBMITTED`) : `${timeLeft}s`}
+                                {!isSubmitted && quizData.quiz?.timer && (
+                                    <div className="status-pill timer">
+                                        <Timer size={14} />{timeLeft}s
                                     </div>
                                 )}
-                                {accessExpires && Date.now() < accessExpires && (() => {
-                                    const remaining = accessExpires - now;
-                                    const hrs = Math.floor(remaining / (1000 * 60 * 60));
-                                    const mins = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
-                                    const secs = Math.floor((remaining % (1000 * 60)) / 1000);
-                                    const pad = n => String(n).padStart(2, '0');
-                                    return (
-                                        <div style={{ marginLeft: 12 }} className="status-pill" title="Access window remaining">
-                                            <Timer size={12} /> TIMER: {pad(hrs)}:{pad(mins)}:{pad(secs)}
-                                        </div>
-                                    );
-                                })()}
+                               
                             </div>
-                            <h2>{isSubmitted ? "POST-SESSION ANALYSIS" : quizData.quiz.quizTitle}</h2>
+                            <h2 className="flex flex-wrap items-center gap-3 text-lg md:text-xl font-bold leading-tight">
+    <span className="flex-1 min-w-[150px]">
+        {isSubmitted ? "POST-SESSION ANALYSIS" : quizData.quiz.quizTitle}
+    </span>
+    
+    {!isSubmitted && accessExpires && Date.now() < accessExpires && (() => {
+        const remaining = accessExpires - now;
+        const hrs = Math.floor(remaining / (1000 * 60 * 60));
+        const mins = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+        const secs = Math.floor((remaining % (1000 * 60)) / 1000);
+        const pad = n => String(n).padStart(2, '0');
+        
+        return (
+            <div className="status-pill timer flex items-center gap-1.5 px-3 py-1 bg-red-500/10 border border-red-500/20 rounded-full text-sm whitespace-nowrap" title="Access window remaining">
+                <Timer size={14} className="text-red-500" /> 
+                <span className="font-mono">{pad(hrs)}:{pad(mins)}:{pad(secs)}</span>
+            </div>
+        );
+    })()}
+</h2>
                         </QuizHeader>
 
                         {!isSubmitted && quizData.quiz?.timer && (
@@ -784,10 +791,30 @@ const EntryButton = styled.button`
 const QuizWrapper = styled.div`width: 100%; max-width: 800px; animation: ${fadeIn} 0.5s ease-out;`;
 
 const QuizHeader = styled.div`
-    margin-bottom: 40px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: ${({ theme }) => theme.bg};
+    padding: 16px 0 20px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid ${({ theme }) => theme.border};
+    transition: background 0.3s ease;
+
+    /* Extend background edge-to-edge on mobile */
+    margin-left: -20px;
+    margin-right: -20px;
+    padding-left: 20px;
+    padding-right: 20px;
+    @media (min-width: 768px) {
+        margin-left: -40px;
+        margin-right: -40px;
+        padding-left: 40px;
+        padding-right: 40px;
+    }
+
     .top-meta {
         display: flex; justify-content: space-between; align-items: center;
-        margin-bottom: 20px; gap: 12px;
+        margin-bottom: 12px; gap: 12px;
         .q-count { font-size: 11px; font-weight: 800; color: ${({ theme }) => theme.textDim}; letter-spacing: 1.5px; text-transform: uppercase; }
         .status-pill {
             display: flex; align-items: center; gap: 8px;
