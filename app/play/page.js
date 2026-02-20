@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, Suspense } from 'react';
 import styled, { keyframes, css, createGlobalStyle } from 'styled-components';
-import { Zap, Loader2, EyeOff, MonitorSmartphone, Trophy, RefreshCcw, User, Hash, CheckCircle2, AlertTriangle, XCircle, Timer, ChevronRight, ShieldAlert } from 'lucide-react';
+import { Zap, Loader2, EyeOff, MonitorSmartphone, Trophy, RefreshCcw, User, Hash, CheckCircle2, AlertTriangle, XCircle, Timer, ChevronRight, ShieldAlert, GraduationCap, Layers, BookOpen } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { useSearchParams, useRouter } from 'next/navigation';
 import CryptoJS from 'crypto-js';
@@ -18,7 +18,7 @@ const decrypt = (encryptedData) => {
         return decrypted.toString(CryptoJS.enc.Utf8);
     } catch (e) {
         console.error('Decryption failed:', e);
-        return encryptedData; // fallback to original if decrypt fails
+        return encryptedData;
     }
 };
 
@@ -35,7 +35,15 @@ const GlobalSecurity = createGlobalStyle`
   }
 `;
 
-const PlayQuizContent = () => { // Renamed internal component
+const CLASS_OPTIONS = [
+    "BSC CS TY", "BSC DS TY", "BSC CM TY", "BSC IT TY",
+    "BSC NT TY", "BSC SD TY", "BSC SE TY", "BSC AIML TY",
+    "BCA TY", "B.Voc PSSD TY"
+];
+
+const DIVISION_OPTIONS = ["A", "B", "C", "D", "E", "F"];
+
+const PlayQuizContent = () => {
     const searchParams = useSearchParams();
     const router = useRouter();
 
@@ -54,22 +62,20 @@ const PlayQuizContent = () => { // Renamed internal component
     const [accessExpires, setAccessExpires] = useState(null);
     const [now, setNow] = useState(Date.now());
 
-    // --- FIX: Initialize state with URL param directly ---
     const [joinData, setJoinData] = useState({
         participantName: '',
-        quizId: ''
+        quizId: '',
+        email: '',
+        studentClass: '',
+        division: '',
+        rollNumber: ''
     });
 
-    // --- FIX: Sync state if URL changes after mount ---
     useEffect(() => {
         const qId = searchParams.get('quizId');
         if (qId) {
-            // We use the functional update to ensure we don't wipe participantName
-            setJoinData(prev => ({
-                ...prev,
-                quizId: qId
-            }));
-            toast.success("ID Captured from URL: " + qId); // Debugging
+            setJoinData(prev => ({ ...prev, quizId: qId }));
+            toast.success("ID Captured from URL: " + qId);
         }
     }, [searchParams]);
 
@@ -127,7 +133,6 @@ const PlayQuizContent = () => { // Renamed internal component
     useEffect(() => {
         if (!quizData || isSubmitted || !quizData.quiz?.timer) return;
         if (timeLeft === 0) {
-            // auto advance even without answer
             handleNextQuestion(true);
             return;
         }
@@ -136,147 +141,152 @@ const PlayQuizContent = () => { // Renamed internal component
     }, [timeLeft, quizData, isSubmitted]);
 
     const handleNextQuestion = (force = false) => {
-        // Check if timer is enabled (data.timer = false means question is compulsory)
-        const isCompulsory = quizData?.quiz?.timer === false;
-        const answerSelected = userAnswers[currentQuestionIdx];
+        const hasTimePerQuestion = quizData?.quiz?.timePerQ && parseInt(quizData.quiz.timePerQ) > 0;
 
-        // If question is compulsory and no answer selected, show error toast
-        if (isCompulsory && !answerSelected) {
-            toast.error("Question is Compulsory");
+        if (!hasTimePerQuestion && !force && !userAnswers[currentQuestionIdx]) {
+            toast.error("Please select an answer before proceeding");
             return;
         }
 
         const isLastQuestion = currentQuestionIdx === quizData.questions.length - 1;
-        if (isLastQuestion) handleSubmitExam();
-        else {
+        if (isLastQuestion) {
+            handleSubmitExam();
+        } else {
             setCurrentQuestionIdx(prev => prev + 1);
             if (quizData.quiz?.timer) setTimeLeft(secondsPerQuestion);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     };
+
     const getDeviceFingerprint = () => {
-    if (typeof window === 'undefined') return 'server'; // Safety for Next.js
-    const { userAgent, language } = window.navigator;
-    const { width, height } = window.screen;
-    const id = `${userAgent}|${language}|${width}x${height}`;
-    return btoa(id).slice(0, 32); 
-};
+        if (typeof window === 'undefined') return 'server';
+        const { userAgent, language } = window.navigator;
+        const { width, height } = window.screen;
+        const id = `${userAgent}|${language}|${width}x${height}`;
+        return btoa(id).slice(0, 32);
+    };
 
     // --- JOIN QUIZ & FULLSCREEN ---
-   const handleJoinQuiz = async () => {
-    if (!joinData.participantName || !joinData.quizId) {
-        toast.error("CREDENTIALS REQUIRED");
-        return;
-    }
-
-    // --- SECURITY CHECK: ONLY PREVENT IF ALREADY FINISHED ---
-    const fingerprint = getDeviceFingerprint();
-    const lockKey = `quiz_lock_${joinData.quizId}_${fingerprint}`;
-    const isLocked = localStorage.getItem(lockKey);
-
-    if (isLocked === "SUBMITTED") {
-        toast.error("ACCESS DENIED: You have already submitted this exam.");
-        return;
-    }
-    // -------------------------------------------------------
-
-    setIsLoading(true);
-    try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/Play/${joinData.quizId}/${joinData.participantName}`, {
-            method: 'GET',
-            headers: {
-                'ngrok-skip-browser-warning': '69420',
-                'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY
-            },
-        });
-
-        if (!response.ok) throw new Error(`ACCESS DENIED: Quiz inactive.`);
-        const data = await response.json();
-
-        if (!data.questions || data.questions.length === 0) {
-            toast.error("ERROR: THIS QUIZ HAS NO QUESTIONS");
-            setIsLoading(false);
+    const handleJoinQuiz = async () => {
+        if (!joinData.participantName || !joinData.quizId) {
+            toast.error("CREDENTIALS REQUIRED");
+            return;
+        }
+        if (!joinData.email) {
+            toast.error("PLEASE ENTER YOUR EMAIL");
+            return;
+        }
+        if (!joinData.studentClass) {
+            toast.error("PLEASE SELECT YOUR CLASS");
+            return;
+        }
+        if (!joinData.division) {
+            toast.error("PLEASE SELECT YOUR DIVISION");
+            return;
+        }
+        if (!joinData.rollNumber || joinData.rollNumber.toString().trim() === '') {
+            toast.error("ROLL NUMBER IS REQUIRED");
             return;
         }
 
-        // TRIGGER FULLSCREEN
-        if (document.documentElement.requestFullscreen) {
-            document.documentElement.requestFullscreen().catch(() => {
-                console.log("Fullscreen blocked");
-            });
+        const fingerprint = getDeviceFingerprint();
+        const lockKey = `quiz_lock_${joinData.quizId}_${fingerprint}`;
+        const isLocked = localStorage.getItem(lockKey);
+
+        if (isLocked === "SUBMITTED") {
+            toast.error("ACCESS DENIED: You have already submitted this exam.");
+            return;
         }
 
-        if (data.quiz?.timePerQ !== undefined) {
-            const convertedSeconds = parseInt(data.quiz.timePerQ) * 60;
-            setSecondsPerQuestion(convertedSeconds);
-            setTimeLeft(convertedSeconds);
-        }
-        
-        // Respect server-side configuration whether to show instant score to students
-        if (data.quiz?.showInstantScore !== undefined) {
-            setShowInstantScore(Boolean(data.quiz.showInstantScore));
-        }
-
-        // Enforce per-attender access window (minutes) if configured by creator
+        setIsLoading(true);
         try {
-            const minutes = parseInt(data.quiz?.timePerStudent || 0);
-            if (minutes > 0) {
-                const accessKey = `quiz_access_${joinData.quizId}_${fingerprint}`;
-                const existing = localStorage.getItem(accessKey);
-                let allow = true;
-                if (existing) {
-                    try {
-                        const obj = JSON.parse(existing);
-                        if (obj.expires && Date.now() > obj.expires) {
-                            // expired -> overwrite
-                            allow = true;
-                        } else {
-                            // still within window -> allow
-                            allow = true;
-                        }
-                    } catch (e) { allow = true; }
-                }
-                if (allow) {
-                    const expires = Date.now() + minutes * 60 * 1000;
-                    localStorage.setItem(accessKey, JSON.stringify({ expires }));
-                    setAccessExpires(expires);
-                } else if (existing) {
-                    try {
-                        const obj = JSON.parse(existing);
-                        if (obj.expires) setAccessExpires(obj.expires);
-                    } catch (e) { /* ignore */ }
-                }
-            }
-        } catch (e) { console.error('access window set failed', e); }
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/Play/${joinData.quizId}/${joinData.participantName}`, {
+                method: 'GET',
+                headers: {
+                    'ngrok-skip-browser-warning': '69420',
+                    'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY
+                },
+            });
 
-        setQuizData(data);
-        toast.success(`CONNECTION ESTABLISHED`);
-    } catch (error) {
-        toast.error(error.message);
-    } finally {
-        setIsLoading(false);
-    }
-};
+            if (!response.ok) throw new Error(`ACCESS DENIED: Quiz inactive.`);
+            const data = await response.json();
+
+            if (!data.questions || data.questions.length === 0) {
+                toast.error("ERROR: THIS QUIZ HAS NO QUESTIONS");
+                setIsLoading(false);
+                return;
+            }
+
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(() => {
+                    console.log("Fullscreen blocked");
+                });
+            }
+
+            if (data.quiz?.timePerQ !== undefined) {
+                const convertedSeconds = parseInt(data.quiz.timePerQ) * 60;
+                setSecondsPerQuestion(convertedSeconds);
+                setTimeLeft(convertedSeconds);
+            }
+
+            if (data.quiz?.showInstantScore !== undefined) {
+                setShowInstantScore(Boolean(data.quiz.showInstantScore));
+            }
+
+            try {
+                const minutes = parseInt(data.quiz?.timePerStudent || 0);
+                if (minutes > 0) {
+                    const accessKey = `quiz_access_${joinData.quizId}_${fingerprint}`;
+                    const existing = localStorage.getItem(accessKey);
+                    let allow = true;
+                    if (existing) {
+                        try {
+                            const obj = JSON.parse(existing);
+                            if (obj.expires && Date.now() > obj.expires) {
+                                allow = true;
+                            } else {
+                                allow = true;
+                            }
+                        } catch (e) { allow = true; }
+                    }
+                    if (allow) {
+                        const expires = Date.now() + minutes * 60 * 1000;
+                        localStorage.setItem(accessKey, JSON.stringify({ expires }));
+                        setAccessExpires(expires);
+                    } else if (existing) {
+                        try {
+                            const obj = JSON.parse(existing);
+                            if (obj.expires) setAccessExpires(obj.expires);
+                        } catch (e) { }
+                    }
+                }
+            } catch (e) { console.error('access window set failed', e); }
+
+            setQuizData(data);
+            toast.success(`CONNECTION ESTABLISHED`);
+        } catch (error) {
+            toast.error(error.message);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     useEffect(() => {
         const handleSecurityBreach = () => {
             if (!document.fullscreenElement && quizData) {
-                //toast.error("SECURITY BREACH: Fullscreen exited. Submitting quiz...");
-              // Force submit the quiz
+                // Force submit the quiz
             }
         };
-
         document.addEventListener('fullscreenchange', handleSecurityBreach);
         return () => document.removeEventListener('fullscreenchange', handleSecurityBreach);
     }, [quizData]);
 
-    // keep a ticking `now` so remaining time display updates
     useEffect(() => {
         if (!accessExpires) return;
         const t = setInterval(() => setNow(Date.now()), 1000);
         return () => clearInterval(t);
     }, [accessExpires]);
 
-    // auto-submit exam when student window expires
     useEffect(() => {
         if (accessExpires && now >= accessExpires && !isSubmitted) {
             toast.error("Access window expired - submitting exam");
@@ -290,12 +300,19 @@ const PlayQuizContent = () => { // Renamed internal component
     };
 
    const handleSubmitExam = async () => {
+    // 1. Email Format Validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(joinData.email)) {
+        toast.error("Invalid email format. Please check your email.");
+        return;
+    }
+
     const questions = quizData.questions;
     let currentScore = 0;
+    
     questions.forEach((q, idx) => {
-        // Decrypt the correctOpt if it's encrypted
-        const correctOpt = q.correctOpt.startsWith('U2F') || q.correctOpt.includes('=') 
-            ? decrypt(q.correctOpt) 
+        const correctOpt = q.correctOpt.startsWith('U2F') || q.correctOpt.includes('=')
+            ? decrypt(q.correctOpt)
             : q.correctOpt;
         if (userAnswers[idx] === q[correctOpt]) currentScore++;
     });
@@ -304,47 +321,56 @@ const PlayQuizContent = () => { // Renamed internal component
         quizId: parseInt(joinData.quizId),
         participantName: joinData.participantName,
         score: currentScore.toString(),
-        outOf: questions.length.toString()
+        outOf: questions.length.toString(),
+        email: joinData.email,
+        studentClass: joinData.studentClass,
+        division: joinData.division,
+        rollNo: joinData.rollNumber.toString()
     };
+
+    // --- FIX: Log the data BEFORE the fetch call ---
 
     setIsLoading(true);
     try {
         const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/Play/Submit`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json', 
+                'Content-Type': 'application/json',
                 'ngrok-skip-browser-warning': '69420',
                 'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY
             },
+            // --- FIX: Body follows the headers correctly ---
             body: JSON.stringify(finalSubmission)
         });
+    console.log("Final Submission Data:", finalSubmission);
 
         if (response.ok) {
-            // --- LOCK THE USER NOW THAT THEY HAVE SUBMITTED ---
             const fingerprint = getDeviceFingerprint();
             const lockKey = `quiz_lock_${joinData.quizId}_${fingerprint}`;
             localStorage.setItem(lockKey, "SUBMITTED");
-            // -------------------------------------------------
 
             setScore(currentScore);
             setIsSubmitted(true);
             toast.success("Quiz Submitted Successfully!");
-            
-            // Exit fullscreen automatically on finish
-            if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
-            
+
+            if (document.exitFullscreen) document.exitFullscreen().catch(() => { });
             window.scrollTo({ top: 0, behavior: 'smooth' });
-        } else throw new Error("SUBMISSION FAILED");
+        } else {
+            const errorData = await response.json();
+            throw new Error(errorData.message || "SUBMISSION FAILED");
+        }
     } catch (error) {
+        console.error('Submission error:', error);
         toast.error(error.message);
     } finally {
         setIsLoading(false);
     }
 };
+
     if (!hasAcceptedRules) {
         return (
             <PageContainer>
-                <EntryWrapper style={{ maxWidth: '700px' }}> {/* Wider wrapper for rules */}
+                <EntryWrapper style={{ maxWidth: '700px' }}>
                     <StatusTag><ShieldAlert size={12} /> PROTOCOL INITIALIZATION</StatusTag>
                     <ZolviEntryCard>
                         <Header>
@@ -360,17 +386,14 @@ const PlayQuizContent = () => { // Renamed internal component
                                 <div className="rule-header"><Zap size={14} /> Anti-Cheat</div>
                                 <div className="rule-desc">Tab switching or window resizing triggers immediate disqualification.</div>
                             </RuleItem>
-
                             <RuleItem>
                                 <div className="rule-header"><EyeOff size={14} /> Surveillance</div>
                                 <div className="rule-desc">Active monitoring of cursor movements and focus state is enabled.</div>
                             </RuleItem>
-
                             <RuleItem>
                                 <div className="rule-header"><MonitorSmartphone size={14} /> Display</div>
                                 <div className="rule-desc">System forces Fullscreen Mode. Exiting will terminate the arena.</div>
                             </RuleItem>
-
                             <RuleItem>
                                 <div className="rule-header"><Timer size={14} /> Timing</div>
                                 <div className="rule-desc">Fixed duration per question. No manual submission required for time-out.</div>
@@ -392,7 +415,7 @@ const PlayQuizContent = () => { // Renamed internal component
             <Toaster toastOptions={{ style: { background: '#0a0a0a', color: '#fff', border: '1px solid #222' } }} />
 
             {!quizData ? (
-                <EntryWrapper>
+                <EntryWrapper style={{ maxWidth: '520px' }}>
                     <StatusTag><ShieldAlert size={12} /> ENCRYPTED SESSION</StatusTag>
                     <ZolviEntryCard>
                         <Header>
@@ -404,8 +427,9 @@ const PlayQuizContent = () => { // Renamed internal component
                         </Header>
 
                         <FormGrid>
+                            {/* --- PARTICIPANT NAME --- */}
                             <InputGroup>
-                                <label>PARTICIPANT NAME</label>
+                                <label>PARTICIPANT NAME <RequiredStar>*</RequiredStar></label>
                                 <div className="input-wrapper">
                                     <User size={16} className="input-icon" />
                                     <input
@@ -416,9 +440,31 @@ const PlayQuizContent = () => { // Renamed internal component
                                     />
                                 </div>
                             </InputGroup>
-
                             <InputGroup>
-                                <label>QUIZ ID</label>
+                                <label>ENTER EMAIL <RequiredStar>*</RequiredStar></label>
+                                <div className="input-wrapper">
+                                    <User size={16} className="input-icon" />
+                                    <input
+                                        type="email" // Changed from text to email
+                                        placeholder="example@email.com"
+                                        value={joinData.email}
+                                        required
+                                        onChange={(e) => setJoinData({ ...joinData, email: e.target.value })}
+                                        // Added basic HTML5 validation pattern
+                                        pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,4}$"
+                                    />
+                                </div>
+                                {/* Optional: Simple validation message */}
+                                {joinData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(joinData.email) && (
+                                    <small style={{ color: '#ff4d4d', fontSize: '10px', marginTop: '5px' }}>
+                                        Please enter a valid email format.
+                                    </small>
+                                )}
+                            </InputGroup>
+
+                            {/* --- QUIZ ID --- */}
+                            <InputGroup>
+                                <label>QUIZ ID <RequiredStar>*</RequiredStar></label>
                                 <div className="input-wrapper">
                                     <Hash size={16} className="input-icon" />
                                     <input
@@ -426,6 +472,56 @@ const PlayQuizContent = () => { // Renamed internal component
                                         placeholder="000000"
                                         value={joinData.quizId}
                                         onChange={(e) => setJoinData({ ...joinData, quizId: e.target.value })}
+                                    />
+                                </div>
+                            </InputGroup>
+
+                            {/* --- CLASS --- */}
+                            <InputGroup>
+                                <label>CLASS <RequiredStar>*</RequiredStar></label>
+                                <div className="input-wrapper">
+                                    <GraduationCap size={16} className="input-icon" />
+                                    <SelectField
+                                        value={joinData.studentClass}
+                                        onChange={(e) => setJoinData({ ...joinData, studentClass: e.target.value })}
+                                        $hasValue={!!joinData.studentClass}
+                                    >
+                                        <option value="" disabled>Select your class...</option>
+                                        {CLASS_OPTIONS.map((cls) => (
+                                            <option key={cls} value={cls}>{cls}</option>
+                                        ))}
+                                    </SelectField>
+                                </div>
+                            </InputGroup>
+
+                            {/* --- DIVISION --- */}
+                            <InputGroup>
+                                <label>DIVISION <RequiredStar>*</RequiredStar></label>
+                                <div className="input-wrapper">
+                                    <Layers size={16} className="input-icon" />
+                                    <SelectField
+                                        value={joinData.division}
+                                        onChange={(e) => setJoinData({ ...joinData, division: e.target.value })}
+                                        $hasValue={!!joinData.division}
+                                    >
+                                        <option value="" disabled>Select division...</option>
+                                        {DIVISION_OPTIONS.map((div) => (
+                                            <option key={div} value={div}>Division {div}</option>
+                                        ))}
+                                    </SelectField>
+                                </div>
+                            </InputGroup>
+
+                            {/* --- ROLL NUMBER --- */}
+                            <InputGroup>
+                                <label>ROLL NUMBER <RequiredStar>*</RequiredStar></label>
+                                <div className="input-wrapper">
+                                    <BookOpen size={16} className="input-icon" />
+                                    <input
+                                        type="number"
+                                        placeholder="Enter roll number..."
+                                        value={joinData.rollNumber}
+                                        onChange={(e) => setJoinData({ ...joinData, rollNumber: e.target.value })}
                                     />
                                 </div>
                             </InputGroup>
@@ -496,7 +592,6 @@ const PlayQuizContent = () => { // Renamed internal component
                                             {["opt1", "opt2", "opt3", "opt4"].map((optKey) => {
                                                 const optValue = q[optKey];
                                                 const isSelected = userAnswers[idx] === optValue;
-                                                // Decrypt correctOpt for comparison
                                                 const correctOpt = q.correctOpt.startsWith('U2F') || q.correctOpt.includes('=')
                                                     ? decrypt(q.correctOpt)
                                                     : q.correctOpt;
@@ -507,7 +602,6 @@ const PlayQuizContent = () => { // Renamed internal component
                                                         if (isCorrect) variant = "correct";
                                                         else if (isSelected) variant = "wrong";
                                                     } else {
-                                                        // don't reveal correct/wrong when instant score disabled
                                                         if (isSelected) variant = "selected";
                                                     }
                                                 } else if (isSelected) variant = "selected";
@@ -556,11 +650,12 @@ const PlayQuiz = () => (
         <PlayQuizContent />
     </Suspense>
 );
+
 // --- Animations ---
 const spin = keyframes` from { transform: rotate(0deg); } to { transform: rotate(360deg); } `;
 const fadeIn = keyframes` from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } `;
 
-// --- Responsive Styled Components ---
+// --- Styled Components ---
 const PageContainer = styled.div`
     min-height: 100vh;
     color: #fff;
@@ -574,7 +669,7 @@ const PageContainer = styled.div`
     transition: filter 0.2s ease, opacity 0.2s ease;
     
     ${props => props.$isBlocked && css`
-        filter: blur(40px) brightness(0.2); /* Makes screenshot content unreadable */
+        filter: blur(40px) brightness(0.2);
         opacity: 0.5;
         pointer-events: none;
     `}
@@ -583,13 +678,12 @@ const PageContainer = styled.div`
         padding: 60px 40px;
     }
 `;
+
 const RulesList = styled.div`
     display: grid;
-    grid-template-columns: 1fr; /* Default mobile: 1 column */
+    grid-template-columns: 1fr;
     gap: 16px;
     margin: 30px 0;
-    
-    /* Desktop: 2 columns */
     @media (min-width: 768px) {
         grid-template-columns: 1fr 1fr;
         gap: 20px;
@@ -604,13 +698,11 @@ const RuleItem = styled.div`
     background: #0a0a0a;
     border: 1px solid #1a1a1a;
     transition: all 0.3s ease;
-
     &:hover {
         border-color: #333;
         background: #0f0f0f;
         transform: translateY(-2px);
     }
-
     .rule-header {
         display: flex;
         align-items: center;
@@ -620,24 +712,20 @@ const RuleItem = styled.div`
         font-size: 13px;
         letter-spacing: 0.5px;
         text-transform: uppercase;
-        
-        svg {
-            color: #fff;
-        }
+        svg { color: #fff; }
     }
-
     .rule-desc {
         font-size: 12px;
         color: #666;
         line-height: 1.5;
     }
 `;
+
 const EntryWrapper = styled.div`
     width: 100%;
     max-width: 440px;
-    margin-top: 10vh;
     animation: ${fadeIn} 0.6s ease-out;
-    margin-top:-10px;
+    margin-top: -10px;
 `;
 
 const StatusTag = styled.div`
@@ -656,10 +744,9 @@ const ZolviEntryCard = styled.div`
     border: 1px solid #1a1a1a;
     padding: 24px;
     width: 100%;
-    /* Desktop adjustments */
     @media (min-width: 768px) { 
-        padding: 40px; 
-        max-width: 700px; /* Wider to accommodate two columns */
+        padding: 40px;
+        max-width: 700px;
     }
 `;
 
@@ -671,23 +758,36 @@ const Header = styled.div`
     .icon-box { 
         width: 50px; height: 50px; border: 1px solid #fff; 
         display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
     }
     h2 { font-size: 1.25rem; font-weight: 900; letter-spacing: 1px; margin: 0; }
     p { font-size: 0.7rem; color: #555; margin: 4px 0 0; font-weight: 600; }
 `;
 
-const FormGrid = styled.div` display: flex; flex-direction: column; gap: 24px; `;
+const FormGrid = styled.div`display: flex; flex-direction: column; gap: 24px;`;
+
+const RequiredStar = styled.span`
+    color: #ff5555;
+    margin-left: 2px;
+`;
 
 const InputGroup = styled.div`
     display: flex;
     flex-direction: column;
     gap: 10px;
-    label { font-size: 10px; font-weight: 800; color: #555; letter-spacing: 1px; }
+    label { 
+        font-size: 10px; 
+        font-weight: 800; 
+        color: #555; 
+        letter-spacing: 1px; 
+        display: flex;
+        align-items: center;
+    }
     .input-wrapper {
         position: relative;
         display: flex;
         align-items: center;
-        .input-icon { position: absolute; left: 16px; color: #333; }
+        .input-icon { position: absolute; left: 16px; color: #333; z-index: 1; pointer-events: none; }
         input {
             width: 100%;
             background: #0a0a0a;
@@ -697,7 +797,43 @@ const InputGroup = styled.div`
             font-size: 14px;
             transition: all 0.3s ease;
             &:focus { outline: none; border-color: #fff; background: #000; }
+            &::placeholder { color: #333; }
         }
+    }
+`;
+
+const SelectField = styled.select`
+    width: 100%;
+    background: #0a0a0a;
+    border: 1px solid #1a1a1a;
+    padding: 16px 16px 16px 48px;
+    color: ${props => props.$hasValue ? '#fff' : '#333'};
+    font-size: 14px;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23444' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+
+    &:focus { 
+        outline: none; 
+        border-color: #fff; 
+        background-color: #000;
+        color: #fff;
+    }
+
+    option {
+        background: #1a1a1a;
+        color: #fff;
+        padding: 8px;
+    }
+
+    option:disabled {
+        color: #333;
     }
 `;
 
@@ -779,6 +915,7 @@ const ProgressBarContainer = styled.div`
     overflow: hidden;
     box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
 `;
+
 const ProgressFill = styled.div`
     height: 100%;
     width: ${props => props.progress}%;
@@ -843,20 +980,10 @@ const OptionButton = styled.div`
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 
     .opt-indicator { 
-        width: 16px; 
-        height: 16px; 
-        border: 2px solid #444;
-        border-radius: 50%;
-        transition: all 0.3s ease;
-        flex-shrink: 0;
+        width: 16px; height: 16px; border: 2px solid #444;
+        border-radius: 50%; transition: all 0.3s ease; flex-shrink: 0;
     }
-    .opt-text { 
-        font-size: 15px; 
-        font-weight: 500; 
-        color: #999; 
-        flex: 1; 
-        letter-spacing: 0.3px;
-    }
+    .opt-text { font-size: 15px; font-weight: 500; color: #999; flex: 1; letter-spacing: 0.3px; }
 
     &:hover { 
         border-color: #666;
@@ -871,22 +998,14 @@ const OptionButton = styled.div`
         border-color: #fff;
         background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
         box-shadow: 0 8px 24px rgba(255, 255, 255, 0.15);
-        .opt-indicator { 
-            background: #fff; 
-            border-color: #fff;
-            box-shadow: 0 0 12px rgba(255, 255, 255, 0.3);
-        }
+        .opt-indicator { background: #fff; border-color: #fff; box-shadow: 0 0 12px rgba(255, 255, 255, 0.3); }
         .opt-text { color: #fff; font-weight: 600; }
     `}
 
     ${props => props.variant === "correct" && css`
         border-color: #4ade80;
         background: linear-gradient(135deg, #0f3f0f 0%, #1a5a1a 100%);
-        .opt-indicator { 
-            background: #4ade80;
-            border-color: #4ade80;
-            box-shadow: 0 0 12px rgba(74, 222, 128, 0.3);
-        }
+        .opt-indicator { background: #4ade80; border-color: #4ade80; box-shadow: 0 0 12px rgba(74, 222, 128, 0.3); }
         .opt-text { color: #fff; font-weight: 700; }
         .res-icon { color: #4ade80; }
     `}
