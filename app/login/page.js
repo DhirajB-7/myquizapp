@@ -315,71 +315,87 @@ const Form = () => {
     const handleDeleteAccount = async () => {
         setDeleteError("");
         
-        if (!deleteEmailInput) {
-            setDeleteError("Email is required");
+        // Validate email is provided
+        if (!deleteEmailInput || deleteEmailInput.trim() === "") {
+            setDeleteError("Please enter your email address to confirm deletion");
             return;
         }
 
-        if (deleteEmailInput.toLowerCase() !== userEmail.toLowerCase()) {
-            setDeleteError("Email does not match your account");
+        // Trim and validate email format
+        const trimmedEmail = deleteEmailInput.trim();
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        
+        if (!emailRegex.test(trimmedEmail)) {
+            setDeleteError("Please enter a valid email address");
+            return;
+        }
+
+        // Check if email matches the account email (case-insensitive)
+        const normalizedInputEmail = trimmedEmail.toLowerCase();
+        const normalizedAccountEmail = userEmail.toLowerCase();
+        
+        if (normalizedInputEmail !== normalizedAccountEmail) {
+            setDeleteError(
+                `The email does not match your account. Your account email is: ${userEmail}`
+            );
             return;
         }
 
         setIsDeleting(true);
-        const loadingToast = toast.loading("Deleting account...");
+        const loadingToast = toast.loading("Verifying email and deleting account...");
 
         try {
             const token = localStorage.getItem("token");
+            
+            if (!token) {
+                throw new Error("Authentication token not found. Please log in again.");
+            }
+
+            // Call delete API with the verified email
             const res = await fetch("/api/auth/delete", {
                 method: "DELETE",
                 headers: { 
                     "Content-Type": "application/json",
                     "Authorization": `Bearer ${token}`
                 },
-                body: JSON.stringify({ email: deleteEmailInput }),
+                body: JSON.stringify({ email: trimmedEmail }),
             });
 
             const data = await res.json();
             
             if (!res.ok) {
-                throw new Error(data.message || "Failed to delete account");
+                // Provide specific error messages based on status
+                if (res.status === 401) {
+                    throw new Error("Your session has expired. Please log in again.");
+                } else if (res.status === 403) {
+                    throw new Error("The email you entered does not match your account.");
+                } else if (res.status === 404) {
+                    throw new Error("Account not found. It may have already been deleted.");
+                } else {
+                    throw new Error(data.message || "Failed to delete your account. Please try again.");
+                }
             }
 
-            toast.success("Account deleted successfully", { id: loadingToast });
+            toast.success("Account and all associated data deleted successfully", { id: loadingToast });
+            
+            // Clear all local data
             localStorage.clear();
+            sessionStorage.clear();
             setIsAuth(false);
             setShowDeleteModal(false);
             setDeleteEmailInput("");
-            setTimeout(() => router.push("/"), 1000);
+            setDeleteError("");
+            
+            // Redirect to home page
+            setTimeout(() => router.push("/"), 1500);
         } catch (err) {
-            const errorMsg = err.message || "An error occurred while deleting your account";
+            const errorMsg = err.message || "An error occurred while deleting your account. Please try again.";
+            console.error("Account deletion error:", errorMsg);
             toast.error(errorMsg, { id: loadingToast });
             setDeleteError(errorMsg);
         } finally {
             setIsDeleting(false);
         }
-        try {
-              const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/Delete/Account/${deleteEmailInput}`, {
-                method: 'DELETE', // Change this to DELETE
-                headers: {
-                  'Content-Type': 'application/json',
-                  'ngrok-skip-browser-warning': 'true',
-                  'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY
-                }
-              });
-        
-              if (response.ok) {
-                // 3. Clear UI state only AFTER server confirms deletion
-            
-                toast.success(" Account deleted successfully.");
-              } else {
-                // If server delete fails, we still clear UI for this session
-               
-                toast.error("Server failed to clear data.");
-              }
-            } catch (err) {
-              console.error("Cleanup error:", err);
-            }
     };
 
     const handleOAuth = (provider) => {
