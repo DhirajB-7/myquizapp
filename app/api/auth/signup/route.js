@@ -10,7 +10,10 @@ export async function POST(req) {
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return NextResponse.json({ message: "User already exists" }, { status: 400 });
+      return NextResponse.json(
+        { message: "This email is already registered. Please log in or use a different email." }, 
+        { status: 400 }
+      );
     }
 
    // 1. Generate a salt and hash the password
@@ -33,9 +36,15 @@ if (process.env.ENABLE_LEGACY_LOG === 'true') {
 // This replaces: const newUser = new User(...); await newUser.save();
  await User.create(userData);
 
-    return NextResponse.json({ message: "User created successfully" }, { status: 201 });
+    return NextResponse.json(
+      { message: "Account created successfully! Please log in." }, 
+      { status: 201 }
+    );
   } catch (error) {
     console.error("SIGNUP_ERROR:", error);
-    return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { message: "An error occurred during signup. Please try again." }, 
+      { status: 500 }
+    );
   }
 }

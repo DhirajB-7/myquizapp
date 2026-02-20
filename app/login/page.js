@@ -75,7 +75,13 @@ const Form = () => {
         // Handle OAuth error
         if (errorParam) {
           const errorMsg = decodeURIComponent(errorParam).replace(/_/g, ' ');
-          toast.error(`OAuth Error: ${errorMsg}`);
+          const userFriendlyMsg = 
+            errorMsg.includes('access_denied') ? 'You denied the OAuth connection. Please try again.' :
+            errorMsg.includes('invalid') ? 'Invalid OAuth credentials. Please try again.' :
+            errorMsg.includes('email') ? 'Unable to fetch email from your account. Please use password login.' :
+            errorMsg.includes('timeout') ? 'OAuth connection timed out. Please try again.' :
+            `OAuth Error: ${errorMsg}`;
+          toast.error(userFriendlyMsg);
           url.searchParams.delete('error');
           window.history.replaceState({}, '', url.toString());
           return;
@@ -85,27 +91,29 @@ const Form = () => {
         if (!tokenParam) return;
 
         (async () => {
+          const loadingToast = toast.loading('Verifying OAuth sign-in...');
           try {
             // store token and fetch user
             localStorage.setItem('token', tokenParam);
             const res = await fetch(`/api/auth/me?token=${tokenParam}`);
             const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Failed to fetch user');
+            if (!res.ok) throw new Error(data.error || 'Failed to fetch user profile');
             localStorage.setItem('user', JSON.stringify(data.user));
             setIsAuth(true);
             setUserName(data.user?.name || 'User');
             setUserEmail(data.user?.email || '');
-            toast.success('Signed in successfully');
+            toast.success(`Welcome, ${data.user?.name}! 🎉`, { id: loadingToast });
             // remove token from URL
             url.searchParams.delete('token');
             window.history.replaceState({}, '', url.toString());
-            setTimeout(() => router.push('/'), 700);
+            setTimeout(() => router.push('/'), 1000);
           } catch (err) {
-            toast.error(err.message || 'OAuth sign-in failed');
+            toast.error(err.message || 'OAuth sign-in failed. Please try again.', { id: loadingToast });
           }
         })();
       } catch (err) {
         console.error('OAuth token handling error', err);
+        toast.error('An unexpected error occurred. Please try again.');
       }
     }, []);
 
@@ -146,12 +154,14 @@ const Form = () => {
                 body: JSON.stringify({ email, action: "send" }),
             });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.error || "Failed to send code");
-            toast.success("Code sent to your email!", { id: loadingToast });
+            if (!res.ok) throw new Error(data.error || "Failed to send verification code");
+            toast.success("Verification code sent to your email! Check your inbox.", { id: loadingToast });
             setStep(2);
             setTimer(60);
         } catch (err) {
-            toast.error(err.message, { id: loadingToast });
+            const errorMsg = err.message || "An error occurred while sending the code";
+            toast.error(errorMsg, { id: loadingToast });
+            setSignupError(errorMsg);
         } finally {
             setIsSigningUp(false);
         }
@@ -182,7 +192,7 @@ const Form = () => {
 
     const handleVerifyOtp = async (e) => {
         e.preventDefault();
-        if (!otpInput) return toast.error("Please enter the code");
+        if (!otpInput) return toast.error("Please enter the verification code");
         setIsSigningUp(true);
         const loadingToast = toast.loading("Verifying code...");
         try {
@@ -192,22 +202,32 @@ const Form = () => {
                 body: JSON.stringify({ email: signupData.email, action: "verify", otpInput }),
             });
             const verifyData = await verifyRes.json();
-            if (!verifyRes.ok) throw new Error(verifyData.message || "Invalid or expired code");
+            if (!verifyRes.ok) {
+                if (verifyRes.status === 400) throw new Error("Invalid or expired verification code. Please request a new one.");
+                throw new Error(verifyData.message || "Verification failed");
+            }
 
+            toast.loading("Creating your account...", { id: loadingToast });
             const signupRes = await fetch("/api/auth/signup", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(signupData),
             });
             const signupDataRes = await signupRes.json();
-            if (!signupRes.ok) throw new Error(signupDataRes.message || "Signup failed");
+            if (!signupRes.ok) {
+                if (signupRes.status === 400) throw new Error("Email already registered. Please log in.");
+                throw new Error(signupDataRes.message || "Account creation failed");
+            }
 
-            toast.success("Verified! Please login 🎉", { id: loadingToast });
+            toast.success("Account created successfully! Please log in.", { id: loadingToast });
             setStep(1);
             setIsFlipped(false);
             setOtpInput("");
+            setSignupData({ name: "", email: "", password: "" });
+            setConfirmPassword("");
         } catch (err) {
-            toast.error(err.message, { id: loadingToast });
+            const errorMsg = err.message || "An error occurred during verification";
+            toast.error(errorMsg, { id: loadingToast });
         } finally {
             setIsSigningUp(false);
         }
@@ -217,8 +237,9 @@ const Form = () => {
         e.preventDefault();
         setLoginError("");
         const { email, password } = loginData;
-        if (!email || !password) return setLoginError("All fields are required");
+        if (!email || !password) return setLoginError("Email and password are required");
         setIsLoggingIn(true);
+        const loadingToast = toast.loading("Signing you in...");
         try {
             const res = await fetch("/api/auth/login", {
                 method: "POST",
@@ -226,16 +247,22 @@ const Form = () => {
                 body: JSON.stringify(loginData),
             });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.message || "Invalid credentials");
+            if (!res.ok) {
+                if (res.status === 401) throw new Error("Invalid email or password");
+                if (res.status === 404) throw new Error("Account not found. Please sign up.");
+                throw new Error(data.message || "Login failed");
+            }
             localStorage.setItem("token", data.token);
             localStorage.setItem("user", JSON.stringify(data.user));
             setIsAuth(true);
             setUserName(data.user?.name || "User");
             setUserEmail(data.user?.email || "");
-            toast.success("Welcome back!");
-            setTimeout(() => (router.push("/")), 800);
+            toast.success(`Welcome back, ${data.user?.name}! 🎉`, { id: loadingToast });
+            setTimeout(() => (router.push("/")), 1000);
         } catch (err) {
-            toast.error(err.message);
+            const errorMsg = err.message || "An error occurred during login";
+            toast.error(errorMsg, { id: loadingToast });
+            setLoginError(errorMsg);
         } finally {
             setIsLoggingIn(false);
         }
@@ -243,23 +270,26 @@ const Form = () => {
 
     const handleLogout = async () => {
         setIsLoggingOut(true);
+        const loadingToast = toast.loading("Signing you out...");
         try {
             const token = localStorage.getItem("token");
             if (token) {
-                await fetch(`/api/auth/logout`, {
+                const res = await fetch(`/api/auth/logout`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ token })
                 });
+                if (!res.ok) throw new Error("Logout failed");
             }
-            toast.success("Logged out safely");
+            toast.success("You've been signed out safely. See you soon!", { id: loadingToast });
         } catch (err) {
             console.error('Logout error:', err);
-            toast.error("Error during logout");
+            toast.error("Error during logout. Please try again.", { id: loadingToast });
         } finally {
             localStorage.clear();
             setIsAuth(false);
-            setTimeout(() => router.push("/"), 800);
+            setTimeout(() => router.push("/"), 1000);
+            setIsLoggingOut(false);
         }
     };
 
@@ -367,13 +397,17 @@ const Form = () => {
                 body: JSON.stringify({ email: forgotEmail, action: "send" }),
             });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.error || "Failed to send reset code");
-            toast.success("Reset code sent to your email!", { id: loadingToast });
+            if (!res.ok) {
+                if (res.status === 404) throw new Error("Email not found. Please check your email address.");
+                throw new Error(data.error || "Failed to send reset code");
+            }
+            toast.success("Reset code sent to your email! Check your inbox and spam folder.", { id: loadingToast });
             setForgotPasswordStep(2);
-            setForgotPasswordTimer(60);
+            setForgotPasswordTimer(600); // 10 minutes
         } catch (err) {
-            toast.error(err.message, { id: loadingToast });
-            setForgotPasswordError(err.message);
+            const errorMsg = err.message || "An error occurred while sending the reset code";
+            toast.error(errorMsg, { id: loadingToast });
+            setForgotPasswordError(errorMsg);
         } finally {
             setIsResettingPassword(false);
         }
@@ -432,12 +466,13 @@ const Form = () => {
         e.preventDefault();
         setForgotPasswordError("");
         
-        if (!newPassword || !confirmNewPassword) return setForgotPasswordError("All fields are required");
+        if (!forgotOtp) return setForgotPasswordError("Reset code is required");
+        if (!newPassword || !confirmNewPassword) return setForgotPasswordError("All password fields are required");
         if (!validatePassword(newPassword)) return setForgotPasswordError("Password must be at least 8 characters with uppercase, lowercase, number and special character");
         if (newPassword !== confirmNewPassword) return setForgotPasswordError("Passwords do not match");
 
         setIsResettingPassword(true);
-        const loadingToast = toast.loading("Resetting password...");
+        const loadingToast = toast.loading("Resetting your password...");
         try {
             const res = await fetch("/api/auth/reset-password", {
                 method: "POST",
@@ -449,17 +484,25 @@ const Form = () => {
                 }),
             });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.message || "Failed to reset password");
-            toast.success("Password reset successfully! Please login.", { id: loadingToast });
+            if (!res.ok) {
+                if (res.status === 400) throw new Error("Invalid or expired reset code. Please request a new one.");
+                if (res.status === 404) throw new Error("Account not found. Please check your email.");
+                throw new Error(data.message || "Password reset failed");
+            }
+            toast.success("Password reset successfully! You can now log in with your new password.", { id: loadingToast });
             setShowForgotPassword(false);
             setForgotPasswordStep(1);
             setForgotEmail("");
             setForgotOtp("");
             setNewPassword("");
             setConfirmNewPassword("");
+            setForgotPasswordError("");
+            setForgotPasswordTimer(0);
+            setIsFlipped(false);
         } catch (err) {
-            toast.error(err.message, { id: loadingToast });
-            setForgotPasswordError(err.message);
+            const errorMsg = err.message || "An error occurred while resetting your password";
+            toast.error(errorMsg, { id: loadingToast });
+            setForgotPasswordError(errorMsg);
         } finally {
             setIsResettingPassword(false);
         }

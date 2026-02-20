@@ -18,8 +18,8 @@ export async function POST(req) {
     const user = await User.findOne({ email });
     if (!user) {
       return NextResponse.json(
-        { message: "User not found with this email" }, 
-        { status: 401 }
+        { message: "No account found with this email. Please sign up." }, 
+        { status: 404 }
       );
     }
 
@@ -27,7 +27,7 @@ export async function POST(req) {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return NextResponse.json(
-        { message: "Invalid credentials" }, 
+        { message: "Password is incorrect. Please try again." }, 
         { status: 401 }
       );
     }
@@ -63,7 +63,7 @@ export async function POST(req) {
     // This will catch any unexpected errors
     console.error("LOGIN_ERROR:", error);
     return NextResponse.json(
-      { message: "Internal Server Error" }, 
+      { message: "An error occurred during login. Please try again." }, 
       { status: 500 }
     );
   }

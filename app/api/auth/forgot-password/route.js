@@ -10,16 +10,20 @@ export async function POST(req) {
         const { email, action, otpInput } = await req.json();
 
         // --- ACTION: SEND / RESEND CODE ---
-        if (action === "send" || action === "reset") {
+        if (action === "send") {
+            // Validate email exists
             const user = await User.findOne({ email });
             if (!user) {
-                return NextResponse.json({ success: false, error: "User not found" }, { status: 404 });
+                return NextResponse.json(
+                    { success: false, message: "No account found with this email address." },
+                    { status: 404 }
+                );
             }
 
             // Generate 6-digit OTP
             const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
             
-            // SAVE TO MEMORY (Not Database)
+            // SAVE TO MEMORY (Shared OTP store)
             otpStore[email] = {
                 otp: generatedOtp,
                 expires: Date.now() + 10 * 60 * 1000 // 10 minutes
@@ -45,27 +49,58 @@ export async function POST(req) {
                         <span style="font-size: 32px; font-weight: bold; letter-spacing: 10px; color: #ff0033;">${generatedOtp}</span>
                     </div>
                     <p style="font-size: 12px; color: #444;">This code is valid for 10 minutes.</p>
+                    <p style="font-size: 12px; color: #666;">If you didn't request a password reset, please ignore this email.</p>
                 </div>`
             });
 
-            return NextResponse.json({ success: true, message: "OTP Sent" });
+            return NextResponse.json(
+                { success: true, message: "Reset code sent successfully! Check your email." },
+                { status: 200 }
+            );
         }
 
         // --- ACTION: VERIFY CODE ---
         if (action === "verify") {
             const record = otpStore[email];
 
-            if (!record || record.otp !== otpInput || Date.now() > record.expires) {
-                return NextResponse.json({ success: false, message: "Invalid or expired code" }, { status: 400 });
+            if (!record) {
+                return NextResponse.json(
+                    { success: false, message: "No reset code found. Please request a new one." },
+                    { status: 400 }
+                );
             }
 
-            return NextResponse.json({ success: true, message: "Verified" });
+            if (record.otp !== otpInput) {
+                return NextResponse.json(
+                    { success: false, message: "The reset code is incorrect. Please check and try again." },
+                    { status: 400 }
+                );
+            }
+
+            if (Date.now() > record.expires) {
+                delete otpStore[email];
+                return NextResponse.json(
+                    { success: false, message: "Reset code has expired. Please request a new one." },
+                    { status: 400 }
+                );
+            }
+
+            return NextResponse.json(
+                { success: true, message: "Code verified. You can now reset your password." },
+                { status: 200 }
+            );
         }
 
-        return NextResponse.json({ success: false, error: "Invalid Action" }, { status: 400 });
+        return NextResponse.json(
+            { success: false, message: "Invalid action" },
+            { status: 400 }
+        );
 
     } catch (error) {
-        console.error("SEND_OTP_ERROR:", error);
-        return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });
+        console.error("FORGOT_PASSWORD_ERROR:", error);
+        return NextResponse.json(
+            { success: false, message: "An error occurred. Please try again later." },
+            { status: 500 }
+        );
     }
 }

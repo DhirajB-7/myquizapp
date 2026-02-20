@@ -1,8 +1,7 @@
-// app/api/verify/route.js
+// app/api/auth/verify/route.js
 import { NextResponse } from 'next/server'; // Use NextResponse for reliability
 import nodemailer from 'nodemailer';
-
-let otpStore = {}; 
+import { otpStore } from '@/lib/otpMemory';
 
 export async function POST(req) {
   try {
@@ -10,7 +9,11 @@ export async function POST(req) {
 
     if (action === "send") {
       const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-      otpStore[email] = { otp: generatedOtp, expires: Date.now() + 300000 };
+      // Store OTP in shared memory with 5-minute expiry
+      otpStore[email] = { 
+        otp: generatedOtp, 
+        expires: Date.now() + 5 * 60 * 1000 // 5 minutes
+      };
 
       const transporter = nodemailer.createTransport({
         service: 'gmail',
@@ -99,17 +102,43 @@ export async function POST(req) {
 
     if (action === "verify") {
       const record = otpStore[email];
-      if (record && record.otp === otpInput && Date.now() < record.expires) {
-        return NextResponse.json({ success: true, message: "Verified!" });
+      
+      if (!record) {
+        return NextResponse.json(
+          { success: false, message: "No verification code found. Please request a new one." },
+          { status: 400 }
+        );
       }
-      return NextResponse.json({ success: false, message: "Invalid or expired code" }, { status: 400 });
+
+      if (record.otp !== otpInput) {
+        return NextResponse.json(
+          { success: false, message: "Invalid verification code. Please check and try again." },
+          { status: 400 }
+        );
+      }
+
+      if (Date.now() > record.expires) {
+        delete otpStore[email];
+        return NextResponse.json(
+          { success: false, message: "Verification code has expired. Please request a new one." },
+          { status: 400 }
+        );
+      }
+
+      return NextResponse.json({ success: true, message: "Email verified successfully!" });
     }
 
     // Fallback for unknown actions
-    return NextResponse.json({ success: false, message: "Invalid action" }, { status: 400 });
+    return NextResponse.json(
+      { success: false, message: "Invalid action" },
+      { status: 400 }
+    );
 
   } catch (error) {
     console.error("Backend Error:", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { success: false, message: "An error occurred. Please try again." },
+      { status: 500 }
+    );
   }
 }

@@ -27,25 +27,34 @@ export async function POST(req) {
         const record = otpStore[email];
         if (!record) {
             return NextResponse.json(
-                { success: false, message: "Session expired. Request a new code." },
+                { success: false, message: "Reset session not found. Please request a new reset code." },
                 { status: 400 }
             );
         }
 
         // 3. Verify OTP and Expiry
         if (record.otp !== otpInput) {
-            return NextResponse.json({ success: false, message: "Invalid code" }, { status: 400 });
+            return NextResponse.json(
+                { success: false, message: "The reset code is incorrect. Please check and try again." },
+                { status: 400 }
+            );
         }
 
         if (Date.now() > record.expires) {
             delete otpStore[email]; 
-            return NextResponse.json({ success: false, message: "Code has expired" }, { status: 400 });
+            return NextResponse.json(
+                { success: false, message: "Reset code has expired. Please request a new one." },
+                { status: 400 }
+            );
         }
 
         // 4. Update the User in MongoDB
         const user = await User.findOne({ email });
         if (!user) {
-            return NextResponse.json({ success: false, message: "User not found" }, { status: 404 });
+            return NextResponse.json(
+                { success: false, message: "Account not found. Please check your email address." },
+                { status: 404 }
+            );
         }
 
         const salt = await bcrypt.genSalt(12);
@@ -61,7 +70,7 @@ export async function POST(req) {
 
         return NextResponse.json({
             success: true,
-            message: "Password updated and all devices logged out!"
+            message: "Password reset successfully! You can now sign in with your new password."
         }, { status: 200 });
 
     } catch (error) {
