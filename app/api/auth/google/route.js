@@ -4,9 +4,14 @@ import User from '../../../../models/User';
 import jwt from 'jsonwebtoken';
 
 const connectDB = async () => {
+    console.log('mongo readyState before connect', mongoose.connection.readyState);
+    const uri = process.env.MONGODB_URI;
+    if (!uri) console.warn('MONGODB_URI is not defined in environment!');
+    else console.log('Using MONGODB_URI prefix:', uri.slice(0, 30) + '...');
     if (mongoose.connection.readyState === 1) return;
     try {
-        await mongoose.connect(process.env.MONGODB_URI);
+        await mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+        console.log('mongo connected, readyState=', mongoose.connection.readyState);
     } catch (err) {
         console.error("MongoDB Connection Error:", err);
     }

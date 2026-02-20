@@ -4,10 +4,18 @@ import User from '../../../../models/User';
 import jwt from 'jsonwebtoken';
 
 const connectDB = async () => {
+  console.log('mongo readyState before connect', mongoose.connection.readyState);
+  const uri = process.env.MONGODB_URI;
+  if (!uri) console.warn('MONGODB_URI is not defined in environment!');
+  else console.log('Using MONGODB_URI prefix:', uri.slice(0, 30) + '...');
   if (mongoose.connection.readyState === 1) return;
   
-  // Clean version for modern Mongoose
-  await mongoose.connect(process.env.MONGODB_URI);
+  try {
+    await mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    console.log('mongo connected, readyState=', mongoose.connection.readyState);
+  } catch (err) {
+    console.error('MongoDB Connection Error:', err);
+  }
 };
 
 export async function GET(req) {
@@ -97,13 +105,19 @@ export async function GET(req) {
         avatar: profile.avatar_url
       });
       console.log('Creating new user:', { email, name: user.name });
-      await user.save();
+      try {
+        await user.save();
+        console.log('GitHub user saved id=', user._id);
+      } catch(e){ console.error('GitHub user save error', e); throw e; }
     } else {
       console.log('Updating existing user:', email);
       user.provider = 'github';
       user.providerId = String(profile.id);
       user.avatar = profile.avatar_url;
-      await user.save();
+      try {
+        await user.save();
+        console.log('GitHub user updated id=', user._id);
+      } catch(e){ console.error('GitHub user update error', e); throw e; }
     }
 
     const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '30d' });
