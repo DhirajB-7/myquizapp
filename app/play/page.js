@@ -299,73 +299,73 @@ const PlayQuizContent = () => {
         setUserAnswers(prev => ({ ...prev, [questionIdx]: optionText }));
     };
 
-   const handleSubmitExam = async () => {
-    // 1. Email Format Validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(joinData.email)) {
-        toast.error("Invalid email format. Please check your email.");
-        return;
-    }
-
-    const questions = quizData.questions;
-    let currentScore = 0;
-    
-    questions.forEach((q, idx) => {
-        const correctOpt = q.correctOpt.startsWith('U2F') || q.correctOpt.includes('=')
-            ? decrypt(q.correctOpt)
-            : q.correctOpt;
-        if (userAnswers[idx] === q[correctOpt]) currentScore++;
-    });
-
-    const finalSubmission = {
-        quizId: parseInt(joinData.quizId),
-        participantName: joinData.participantName,
-        score: currentScore.toString(),
-        outOf: questions.length.toString(),
-        email: joinData.email,
-        studentClass: joinData.studentClass,
-        division: joinData.division,
-        rollNo: joinData.rollNumber.toString()
-    };
-
-    // --- FIX: Log the data BEFORE the fetch call ---
-
-    setIsLoading(true);
-    try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/Play/Submit`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'ngrok-skip-browser-warning': '69420',
-                'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY
-            },
-            // --- FIX: Body follows the headers correctly ---
-            body: JSON.stringify(finalSubmission)
-        });
-    console.log("Final Submission Data:", finalSubmission);
-
-        if (response.ok) {
-            const fingerprint = getDeviceFingerprint();
-            const lockKey = `quiz_lock_${joinData.quizId}_${fingerprint}`;
-            localStorage.setItem(lockKey, "SUBMITTED");
-
-            setScore(currentScore);
-            setIsSubmitted(true);
-            toast.success("Quiz Submitted Successfully!");
-
-            if (document.exitFullscreen) document.exitFullscreen().catch(() => { });
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        } else {
-            const errorData = await response.json();
-            throw new Error(errorData.message || "SUBMISSION FAILED");
+    const handleSubmitExam = async () => {
+        // 1. Email Format Validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(joinData.email)) {
+            toast.error("Invalid email format. Please check your email.");
+            return;
         }
-    } catch (error) {
-        console.error('Submission error:', error);
-        toast.error(error.message);
-    } finally {
-        setIsLoading(false);
-    }
-};
+
+        const questions = quizData.questions;
+        let currentScore = 0;
+
+        questions.forEach((q, idx) => {
+            const correctOpt = q.correctOpt.startsWith('U2F') || q.correctOpt.includes('=')
+                ? decrypt(q.correctOpt)
+                : q.correctOpt;
+            if (userAnswers[idx] === q[correctOpt]) currentScore++;
+        });
+
+        const finalSubmission = {
+            quizId: parseInt(joinData.quizId),
+            participantName: joinData.participantName,
+            score: currentScore.toString(),
+            outOf: questions.length.toString(),
+            email: joinData.email,
+            studentClass: joinData.studentClass,
+            division: joinData.division,
+            rollNo: joinData.rollNumber.toString()
+        };
+
+        // --- FIX: Log the data BEFORE the fetch call ---
+
+        setIsLoading(true);
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/Play/Submit`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'ngrok-skip-browser-warning': '69420',
+                    'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY
+                },
+                // --- FIX: Body follows the headers correctly ---
+                body: JSON.stringify(finalSubmission)
+            });
+            console.log("Final Submission Data:", finalSubmission);
+
+            if (response.ok) {
+                const fingerprint = getDeviceFingerprint();
+                const lockKey = `quiz_lock_${joinData.quizId}_${fingerprint}`;
+                localStorage.setItem(lockKey, "SUBMITTED");
+
+                setScore(currentScore);
+                setIsSubmitted(true);
+                toast.success("Quiz Submitted Successfully!");
+
+                if (document.exitFullscreen) document.exitFullscreen().catch(() => { });
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+                const errorData = await response.json();
+                throw new Error(errorData.message || "SUBMISSION FAILED");
+            }
+        } catch (error) {
+            console.error('Submission error:', error);
+            toast.error(error.message);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     if (!hasAcceptedRules) {
         return (
@@ -629,8 +629,17 @@ const PlayQuizContent = () => {
                     <FooterActions>
                         {!isSubmitted ? (
                             <PrimaryButton onClick={handleNextQuestion} disabled={isLoading}>
-                                {currentQuestionIdx === quizData.questions.length - 1 ? "FINISH" : "NEXT"}
-                                <ChevronRight size={20} />
+                                {isLoading ? (
+                                    <>
+                                        <Loader2 className="spinner" size={20} />
+                                        <span>SUBMITTING...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        {currentQuestionIdx === quizData.questions.length - 1 ? "FINISH" : "NEXT"}
+                                        <ChevronRight size={20} />
+                                    </>
+                                )}
                             </PrimaryButton>
                         ) : (
                             <SecondaryButton onClick={() => window.location.reload()}>
