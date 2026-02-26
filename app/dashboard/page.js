@@ -896,8 +896,9 @@ const StatusBadge = styled.button`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 8px;
   padding: 0px 12px;
+  height: 28px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
   font-size: 0.7rem;
