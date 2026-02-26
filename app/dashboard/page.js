@@ -897,12 +897,12 @@ const StatusBadge = styled.button`
   align-items: center;
   justify-content: center;
   gap: 12px;
-  padding: 10px 24px;
+  padding: 10px 10px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
   font-size: 0.7rem;
   font-weight: 900;
-  letter-spacing: 2px;
+  letter-spacing: 1px;
   text-transform: uppercase;
   font-family: 'JetBrains Mono', monospace;
   background: ${props => props.$isActive ? 'rgba(255, 0, 51, 0.05)' : 'rgba(0, 255, 65, 0.05)'};
