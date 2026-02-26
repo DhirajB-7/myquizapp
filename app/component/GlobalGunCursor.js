@@ -3,72 +3,64 @@ import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { motion, useMotionValue, useSpring } from 'framer-motion';
 
-const CrosshairContainer = styled(motion.div)`
+const CursorWrapper = styled(motion.div)`
     position: fixed;
     top: 0;
     left: 0;
-    width: 32px;
-    height: 32px;
     pointer-events: none;
-    z-index: 999999; /* Max priority */
+    z-index: 999999;
     mix-blend-mode: difference;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     will-change: transform;
 
-    /* Precise Center Point */
-    &::before {
-        content: '';
-        position: absolute;
-        width: 2px;
-        height: 2px;
-        background: #fff;
+    /* Responsive Guard: Hide on touch devices */
+    @media (hover: none) and (pointer: coarse) {
+        display: none;
     }
 `;
 
-const Line = styled(motion.div)`
+const PointerArrow = styled(motion.div)`
     position: absolute;
-    background: #fff;
-    
-    &.vertical {
-        width: 1px;
-        height: 8px;
-        &.top { top: 0; }
-        &.bottom { bottom: 0; }
-    }
-
-    &.horizontal {
-        height: 1px;
-        width: 8px;
-        &.left { left: 0; }
-        &.right { right: 0; }
-    }
+    width: 0;
+    height: 0;
+    /* This creates a sharp minimalist triangle arrow */
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-bottom: 14px solid #fff;
+    /* Tilted to feel like a traditional cursor */
+    transform-origin: center;
 `;
 
 const GlobalGunCursor = () => {
     const [isPressed, setIsPressed] = useState(false);
-    const [isVisible, setIsVisible] = useState(false); // Hide until first movement
-    
-    const mouseX = useMotionValue(-100);
-    const mouseY = useMotionValue(-100);
+    const [isVisible, setIsVisible] = useState(false);
+    const [isHovering, setIsHovering] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
 
-    const springConfig = { damping: 25, stiffness: 500, mass: 0.3 };
-    const x = useSpring(mouseX, springConfig);
-    const y = useSpring(mouseY, springConfig);
+    const mouseX = useMotionValue(0);
+    const mouseY = useMotionValue(0);
+
+    // Ultra-responsive spring (Fast but smooth)
+    const springX = useSpring(mouseX, { damping: 45, stiffness: 1000, mass: 0.1 });
+    const springY = useSpring(mouseY, { damping: 45, stiffness: 1000, mass: 0.1 });
 
     useEffect(() => {
+        const checkMobile = () => setIsMobile(window.matchMedia("(max-width: 768px)").matches);
+        checkMobile();
+
         const moveMouse = (e) => {
-            // Only show the cursor once the mouse actually moves
             if (!isVisible) setIsVisible(true);
-            
             mouseX.set(e.clientX);
             mouseY.set(e.clientY);
+
+            // Logic to detect if hovering over buttons/links
+            const target = e.target;
+            const isClickable = target.closest('button, a, input, [role="button"]');
+            setIsHovering(!!isClickable);
         };
-        
+
         const handleDown = () => setIsPressed(true);
         const handleUp = () => setIsPressed(false);
-        const handleLeave = () => setIsVisible(false); // Hide if mouse leaves window
+        const handleLeave = () => setIsVisible(false);
 
         window.addEventListener('mousemove', moveMouse);
         window.addEventListener('mousedown', handleDown);
@@ -83,21 +75,20 @@ const GlobalGunCursor = () => {
         };
     }, [mouseX, mouseY, isVisible]);
 
-    if (!isVisible) return null;
+    if (!isVisible || isMobile) return null;
 
     return (
-        <CrosshairContainer 
-            style={{ x, y, translateX: '-50%', translateY: '-50%' }}
-            animate={{ 
-                rotate: isPressed ? 45 : 0,
-                scale: isPressed ? 1.2 : 1 
-            }}
-        >
-            <Line className="vertical top" animate={{ y: isPressed ? -4 : 0 }} />
-            <Line className="vertical bottom" animate={{ y: isPressed ? 4 : 0 }} />
-            <Line className="horizontal left" animate={{ x: isPressed ? -4 : 0 }} />
-            <Line className="horizontal right" animate={{ x: isPressed ? 4 : 0 }} />
-        </CrosshairContainer>
+        <CursorWrapper style={{ x: springX, y: springY, translateX: '-2px', translateY: '-2px' }}>
+            <PointerArrow 
+                animate={{ 
+                    // Slightly grows on hover, shrinks on click
+                    scale: isPressed ? 0.75 : isHovering ? 1.3 : 1,
+                    // Subtle rotation change on click for "mechanical" feel
+                    rotate: isPressed ? -15 : -30 
+                }}
+                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+            />
+        </CursorWrapper>
     );
 };
 

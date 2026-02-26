@@ -6,6 +6,7 @@ import StyledComponentsRegistry from './lib/registry';
 import { Toaster } from 'react-hot-toast';
 import GlobalGunCursor from "./component/GlobalGunCursor";
 import ScrollHandler from "./component/ScrollHandler";
+import ClientWrapper from "./component/ClientWrapper";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -77,9 +78,11 @@ export default function RootLayout({ children }) {
           <AppBackground />
           <GlobalGunCursor />
           <div className="relative z-10 flex flex-col min-h-screen">
-            <Navbar />
-            <main className="flex-grow">
-              {children}
+         
+            <main className="grow">
+             <ClientWrapper>
+            {children}
+          </ClientWrapper>
             </main>
           </div>
 

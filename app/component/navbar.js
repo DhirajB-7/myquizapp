@@ -36,7 +36,6 @@ const Navbar = () => {
         <div className="logo-section" onClick={() => router.push("/")}>
           <Logo />
         </div>
-
         {/* RIGHT: Navigation Actions */}
         <div className="actions-section">
           {/* Desktop Links */}

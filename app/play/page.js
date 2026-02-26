@@ -559,7 +559,7 @@ const PlayQuizContent = () => {
                                
                             </div>
                             <h2 className="flex flex-wrap items-center gap-3 text-lg md:text-xl font-bold leading-tight">
-    <span className="flex-1 min-w-[150px]">
+    <span className="flex-1 min-w-37.5">
         {isSubmitted ? "POST-SESSION ANALYSIS" : quizData.quiz.quizTitle}
     </span>
     
