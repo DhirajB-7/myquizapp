@@ -9,7 +9,7 @@ export default function ClientWrapper({ children }) {
   return (
     <div className="relative z-10 flex flex-col min-h-screen">
       {!hideNavbar && <Navbar />}
-      <main className="flex-grow">
+      <main className="grow">
         {children}
       </main>
     </div>
