@@ -305,14 +305,20 @@ const CreatePage = () => {
                             </FormGroup>
 
                             <DualGrid>
-                                <FormGroup>
+                                {/* <FormGroup>
                                     <label><Timer size={12} /> TIMER </label>
                                     <BinaryToggle>
                                         <button className={quizInfo.timeLimit ? "active" : ""} onClick={() => handleInfoChange('timeLimit', true)}>ENABLED</button>
                                         <button className={!quizInfo.timeLimit ? "active" : ""} onClick={() => handleInfoChange('timeLimit', false)}>DISABLED</button>
                                     </BinaryToggle>
+                                </FormGroup> */}
+                                <FormGroup>
+                                    <label><CheckCircle size={12} /> INSTANT SCORE DISPLAY</label>
+                                    <BinaryToggle>
+                                        <button className={quizInfo.showInstantScore ? "active" : ""} onClick={() => handleInfoChange('showInstantScore', true)}>YES</button>
+                                        <button className={!quizInfo.showInstantScore ? "active" : ""} onClick={() => handleInfoChange('showInstantScore', false)}>NO</button>
+                                    </BinaryToggle>
                                 </FormGroup>
-
                                 <FormGroup>
                                     <label><Globe size={12} /> VISIBILITY</label>
                                     <BinaryToggle>
@@ -323,13 +329,7 @@ const CreatePage = () => {
                             </DualGrid>
 
                             <DualGrid>
-                                <FormGroup>
-                                    <label><CheckCircle size={12} /> INSTANT SCORE DISPLAY</label>
-                                    <BinaryToggle>
-                                        <button className={quizInfo.showInstantScore ? "active" : ""} onClick={() => handleInfoChange('showInstantScore', true)}>YES</button>
-                                        <button className={!quizInfo.showInstantScore ? "active" : ""} onClick={() => handleInfoChange('showInstantScore', false)}>NO</button>
-                                    </BinaryToggle>
-                                </FormGroup>
+
                             </DualGrid>
 
                             {quizInfo.timeLimit ? (
@@ -338,19 +338,6 @@ const CreatePage = () => {
                                     <input type="number" className="zolvi-input" value={quizInfo.questionPerMin} onChange={(e) => handleInfoChange('questionPerMin', e.target.value)} placeholder="e.g. 1 Min" />
                                 </FormGroup>
                             ) : (
-                                // <FormGroup>
-                                //     <label><Clock size={12} /> WINDOW OPEN FOR STUDENT (MINUTES)</label>
-                                //     <input 
-                                //         type="number" 
-                                //         className="zolvi-input" 
-                                //         value={quizInfo.timePerStudent} 
-                                //         onChange={(e) => handleInfoChange('timePerStudent', e.target.value)}
-                                //         min="1"
-                                //         max="2880"
-                                //         step="1"
-                                //         placeholder="Enter minutes "
-                                //     />
-                                // </FormGroup>
                                 <FormGroup>
                                     <label><Clock size={12} /> WINDOW OPEN FOR STUDENT (HH : MM)</label>
                                     <PickerContainer>
