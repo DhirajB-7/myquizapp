@@ -502,21 +502,41 @@ const PlayQuizContent = () => {
                                             : `PAGE ${currentPage + 1} / ${totalPages} · Q${pageStart + 1}–${Math.min(pageEnd, quizData.questions.length)} of ${quizData.questions.length}`}
                                     </span>
                                 </div>
-                                <div className="meta-right">
+
+                            </div>
+                            <h2 className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full border-b border-white/10 pb-4 mb-6">
+                                {/* Title Section */}
+                                <span className="text-lg md:text-xl font-bold tracking-tight uppercase truncate">
+                                    {isSubmitted ? "POST-SESSION ANALYSIS" : quizData.quiz.quizTitle}
+                                </span>
+
+                                {/* Timers Container */}
+                                <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                                    {/* Question Timer */}
                                     {!isSubmitted && quizData.quiz?.timer && (
-                                        <div className="status-pill timer"><Timer size={14} />{timeLeft}s</div>
+                                        <div className="status-pill timer flex items-center gap-1.5 px-3 py-1 bg-white/5 border border-white/10 rounded-full text-xs md:text-sm font-mono whitespace-nowrap">
+                                            <Timer size={14} className="text-white/60" />
+                                            <span>{timeLeft}s</span>
+                                        </div>
                                     )}
+
+                                    {/* Session/Access Timer */}
                                     {!isSubmitted && accessExpires && Date.now() < accessExpires && (() => {
                                         const remaining = accessExpires - now;
                                         const hrs = Math.floor(remaining / (1000 * 60 * 60));
                                         const mins = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
                                         const secs = Math.floor((remaining % (1000 * 60)) / 1000);
                                         const pad = n => String(n).padStart(2, '0');
-                                        return <div className="status-pill timer" title="Access window"><Timer size={12} /> {pad(hrs)}:{pad(mins)}:{pad(secs)}</div>;
+
+                                        return (
+                                            <div className="status-pill timer flex items-center gap-1.5 px-3 py-1 bg-white/5 border border-white/10 rounded-full text-xs md:text-sm font-mono whitespace-nowrap" title="Access window">
+                                                <Timer size={12} className="text-white/60" />
+                                                <span>{pad(hrs)}:{pad(mins)}:{pad(secs)}</span>
+                                            </div>
+                                        );
                                     })()}
                                 </div>
-                            </div>
-                            <h2>{isSubmitted ? "POST-SESSION ANALYSIS" : quizData.quiz.quizTitle}</h2>
+                            </h2>
 
                             {/* Progress dots bar */}
                             {!isSubmitted && totalPages > 1 && (
