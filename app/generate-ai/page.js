@@ -133,7 +133,7 @@ const AIGenerator = () => {
 
     try {
         // 3. Call the API
-        const response = await fetch(`https://quizbyapi.onrender.com/api/v1/Generate`, {
+        const response = await fetch(`https://quizbyapi-42ai.onrender.com/api/v1/Generate`, {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
