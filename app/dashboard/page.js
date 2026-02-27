@@ -581,7 +581,7 @@ return (
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
               <Radio size={18} className="spinner" style={{ color: '#22c55e' }} /> 
-              LIVE PARTICIPANTS
+              LIVE DATA
             </h3>
             {/* --- TOTAL COUNT BADGE --- */}
             <div style={{ 
