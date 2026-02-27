@@ -303,12 +303,12 @@ const PlayQuizContent = () => {
     const handleConfirmSubmit = () => { setShowConfirmModal(false); handleSubmitExam(); };
     const handleCancelSubmit = () => { setShowConfirmModal(false); };
 
-    const getDeviceFingerprint = () => {
-        if (typeof window === 'undefined') return 'server';
-        const { userAgent, language } = window.navigator;
-        const { width, height } = window.screen;
-        return btoa(`${userAgent}|${language}|${width}x${height}`).slice(0, 32);
-    };
+    // const getDeviceFingerprint = () => {
+    //     if (typeof window === 'undefined') return 'server';
+    //     const { userAgent, language } = window.navigator;
+    //     const { width, height } = window.screen;
+    //     return btoa(`${userAgent}|${language}|${width}x${height}`).slice(0, 32);
+    // };
 
     const handleJoinQuiz = async () => {
         if (!joinData.participantName || !joinData.quizId) { toast.error("CREDENTIALS REQUIRED"); return; }
