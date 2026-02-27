@@ -279,58 +279,27 @@ const PlayQuizContent = () => {
         if (!joinData.rollNumber || joinData.rollNumber.toString().trim() === '') { toast.error("ROLL NUMBER IS REQUIRED"); return; }
 
         setIsLoading(true);
-       try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/Play/${joinData.quizId}/${joinData.participantName}/${joinData.email}`, {
-        method: 'GET',
-        headers: { 'ngrok-skip-browser-warning': '69420', 'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY },
-    });
-
-    // --- UPDATED ERROR LOGIC START ---
-    if (!response.ok) {
-        let serverErrorMessage = "ACCESS DENIED";
         try {
-            const errorBody = await response.json();
-            // This captures the message your friend sends from the server
-            serverErrorMessage = errorBody.message || errorBody.error || serverErrorMessage;
-        } catch (e) {
-            // Fallback if the server sends plain text or no body
-            serverErrorMessage = `SERVER ERROR: ${response.status}`;
-        }
-        throw new Error(serverErrorMessage);
-    }
-    // --- UPDATED ERROR LOGIC END ---
-
-    const data = await response.json();
-    
-    if (!data.questions || data.questions.length === 0) { 
-        toast.error("ERROR: THIS QUIZ HAS NO QUESTIONS"); 
-        setIsLoading(false); 
-        return; 
-    }
-
-    if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => { });
-    
-    if (data.quiz?.showInstantScore !== undefined) setShowInstantScore(Boolean(data.quiz.showInstantScore));
-
-    try {
-        const minutes = parseInt(data.quiz?.timePerStudent || 0);
-        if (minutes > 0) {
-            const expires = Date.now() + minutes * 60 * 1000;
-            setAccessExpires(expires);
-        }
-    } catch (e) { 
-        console.error('access window set failed', e); 
-    }
-
-    setQuizData(data);
-    toast.success(`CONNECTION ESTABLISHED`);
-
-} catch (error) { 
-    // This will now show the actual message from your friend's server
-    toast.error(error.message.toUpperCase()); 
-} finally { 
-    setIsLoading(false); 
-}
+            const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/Play/${joinData.quizId}/${joinData.participantName}/${joinData.email}`, {
+                method: 'GET',
+                headers: { 'ngrok-skip-browser-warning': '69420', 'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY },
+            });
+            if (!response.ok) throw new Error(`QUIZ JOIN FAILED: ${response.statusText}`);
+            const data = await response.json();
+            if (!data.questions || data.questions.length === 0) { toast.error("ERROR: THIS QUIZ HAS NO QUESTIONS"); setIsLoading(false); return; }
+            if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => { });
+            if (data.quiz?.showInstantScore !== undefined) setShowInstantScore(Boolean(data.quiz.showInstantScore));
+            try {
+                const minutes = parseInt(data.quiz?.timePerStudent || 0);
+                if (minutes > 0) {
+                    const expires = Date.now() + minutes * 60 * 1000;
+                    setAccessExpires(expires);
+                }
+            } catch (e) { console.error('access window set failed', e); }
+            setQuizData(data);
+            toast.success(`CONNECTION ESTABLISHED`);
+        } catch (error) { toast.error(error.message); }
+        finally { setIsLoading(false); }
     };
 
     useEffect(() => {
