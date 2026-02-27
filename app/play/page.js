@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, Suspense, useRef } from 'react';
 import styled, { keyframes, css, createGlobalStyle, ThemeProvider } from 'styled-components';
-import { Zap, Loader2, EyeOff, MonitorSmartphone, Trophy, RefreshCcw, User, Hash, CheckCircle2, AlertTriangle, XCircle, Timer, ChevronRight, ShieldAlert, GraduationCap, Layers, BookOpen, ChevronLeft, Sun, Moon, ChevronDown } from 'lucide-react';
+import { Zap, Loader2, EyeOff, MonitorSmartphone, Trophy, RefreshCcw, User, Hash, CheckCircle2, AlertTriangle, XCircle, Timer, ChevronRight, ShieldAlert, GraduationCap, Layers, BookOpen, ChevronLeft, Sun, Moon } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { useSearchParams, useRouter } from 'next/navigation';
 import CryptoJS from 'crypto-js';
@@ -63,17 +63,13 @@ const ThemeToggleBtn = styled.button`
     @media (min-width: 768px) { top: 24px; right: 24px; width: 48px; height: 48px; }
 `;
 
-// --- CONFIRMATION MODAL with clickable unanswered ---
+// --- CONFIRMATION MODAL ---
 const ConfirmModal = ({ isOpen, onConfirm, onCancel, questions, userAnswers, onGoToQuestion }) => {
     if (!isOpen) return null;
     const total = questions.length;
     const answeredCount = Object.keys(userAnswers).length;
     const unanswered = total - answeredCount;
-
-    // Build list of unanswered question indices
-    const unansweredIndices = questions
-        .map((_, idx) => idx)
-        .filter(idx => !userAnswers[idx]);
+    const unansweredIndices = questions.map((_, idx) => idx).filter(idx => !userAnswers[idx]);
 
     return (
         <ModalOverlay>
@@ -100,17 +96,12 @@ const ConfirmModal = ({ isOpen, onConfirm, onCancel, questions, userAnswers, onG
                             ? `You have ${unanswered} unanswered question${unanswered > 1 ? 's' : ''}. Click any to jump to it.`
                             : "All questions answered. Once submitted, you cannot make changes."}
                     </p>
-
                     {unansweredIndices.length > 0 && (
                         <div className="unanswered-grid">
                             <div className="grid-label">UNANSWERED — CLICK TO JUMP:</div>
                             <div className="q-chips">
                                 {unansweredIndices.map(idx => (
-                                    <button
-                                        key={idx}
-                                        className="q-chip"
-                                        onClick={() => { onGoToQuestion(idx); onCancel(); }}
-                                    >
+                                    <button key={idx} className="q-chip" onClick={() => { onGoToQuestion(idx); onCancel(); }}>
                                         Q{idx + 1}
                                     </button>
                                 ))}
@@ -141,16 +132,13 @@ const PlayQuizContent = () => {
     const [userAnswers, setUserAnswers] = useState({});
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [score, setScore] = useState(0);
-    const [currentPage, setCurrentPage] = useState(0); // 0-indexed page
-    const [secondsPerQuestion, setSecondsPerQuestion] = useState(60);
-    const [timeLeft, setTimeLeft] = useState(60);
+    const [currentPage, setCurrentPage] = useState(0);
     const [warningCount, setWarningCount] = useState(0);
     const [screenBlocked, setScreenBlocked] = useState(false);
     const [showInstantScore, setShowInstantScore] = useState(false);
     const [accessExpires, setAccessExpires] = useState(null);
     const [now, setNow] = useState(Date.now());
     const [showConfirmModal, setShowConfirmModal] = useState(false);
-    // For highlighting a specific question after jumping from modal
     const [highlightedQ, setHighlightedQ] = useState(null);
     const questionRefs = useRef({});
 
@@ -181,22 +169,15 @@ const PlayQuizContent = () => {
         };
         const handleSecurityClear = () => setScreenBlocked(false);
 
-        // Instead of auto-blocking on blur, show confirm dialog
         const handleBlur = () => {
             const confirmed = window.confirm("⚠️ QUIZ ALERT: Leaving this tab will terminate your session. Do you want to exit the quiz?");
-            if (confirmed) {
-                window.location.reload();
-            }
-            // If No — do nothing, user stays
+            if (confirmed) window.location.reload();
         };
 
         const handleMouseLeave = (e) => {
-            // Only trigger when cursor leaves through the top (new tab / address bar)
             if (e.clientY <= 0) {
                 const confirmed = window.confirm("⚠️ QUIZ ALERT: Your cursor left the exam window. Do you want to exit the quiz?");
-                if (confirmed) {
-                    window.location.reload();
-                }
+                if (confirmed) window.location.reload();
             }
         };
 
@@ -234,15 +215,7 @@ const PlayQuizContent = () => {
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
     }, [quizData, isSubmitted, warningCount]);
 
-    // Timer per page (if timer enabled, counts per page visit)
-    useEffect(() => {
-        if (!quizData || isSubmitted || !quizData.quiz?.timer) return;
-        if (timeLeft === 0) { handleNextSection(true); return; }
-        const timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
-        return () => clearInterval(timer);
-    }, [timeLeft, quizData, isSubmitted]);
-
-    // Access window
+    // Access window countdown
     useEffect(() => {
         if (!accessExpires) return;
         const t = setInterval(() => setNow(Date.now()), 1000);
@@ -261,17 +234,15 @@ const PlayQuizContent = () => {
         const targetPage = Math.floor(globalIdx / QUESTIONS_PER_PAGE);
         setCurrentPage(targetPage);
         setHighlightedQ(globalIdx);
-        // Scroll after render
         setTimeout(() => {
             const el = questionRefs.current[globalIdx];
-            if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
             setTimeout(() => setHighlightedQ(null), 2000);
         }, 100);
     };
 
     const handleNextSection = (force = false) => {
         if (!force) {
-            // Check if current page has unanswered (optional warning, not blocking)
             const unansweredOnPage = currentPageQuestions.filter((_, i) => !userAnswers[pageStart + i]);
             if (unansweredOnPage.length > 0) {
                 toast(`${unansweredOnPage.length} question${unansweredOnPage.length > 1 ? 's' : ''} unanswered on this page`, { icon: '⚠️' });
@@ -279,10 +250,8 @@ const PlayQuizContent = () => {
         }
         if (currentPage < totalPages - 1) {
             setCurrentPage(prev => prev + 1);
-            if (quizData?.quiz?.timer) setTimeLeft(secondsPerQuestion);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } else {
-            // Last page - check all answered before showing modal
             const totalUnanswered = quizData.questions.filter((_, idx) => !userAnswers[idx]).length;
             if (totalUnanswered > 0) {
                 toast.error(`Answer all questions before submitting. ${totalUnanswered} remaining.`);
@@ -295,7 +264,6 @@ const PlayQuizContent = () => {
     const handlePrevSection = () => {
         if (currentPage > 0) {
             setCurrentPage(prev => prev - 1);
-            if (quizData?.quiz?.timer) setTimeLeft(secondsPerQuestion);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     };
@@ -303,42 +271,28 @@ const PlayQuizContent = () => {
     const handleConfirmSubmit = () => { setShowConfirmModal(false); handleSubmitExam(); };
     const handleCancelSubmit = () => { setShowConfirmModal(false); };
 
-    // const getDeviceFingerprint = () => {
-    //     if (typeof window === 'undefined') return 'server';
-    //     const { userAgent, language } = window.navigator;
-    //     const { width, height } = window.screen;
-    //     return btoa(`${userAgent}|${language}|${width}x${height}`).slice(0, 32);
-    // };
-
     const handleJoinQuiz = async () => {
         if (!joinData.participantName || !joinData.quizId) { toast.error("CREDENTIALS REQUIRED"); return; }
         if (!joinData.email) { toast.error("PLEASE ENTER YOUR EMAIL"); return; }
         if (!joinData.studentClass) { toast.error("PLEASE SELECT YOUR CLASS"); return; }
         if (!joinData.division) { toast.error("PLEASE SELECT YOUR DIVISION"); return; }
         if (!joinData.rollNumber || joinData.rollNumber.toString().trim() === '') { toast.error("ROLL NUMBER IS REQUIRED"); return; }
-        const fingerprint = getDeviceFingerprint();
-        const lockKey = `quiz_lock_${joinData.quizId}_${fingerprint}`;
-        if (localStorage.getItem(lockKey) === "SUBMITTED") { toast.error("ACCESS DENIED: You have already submitted this exam."); return; }
+
         setIsLoading(true);
         try {
             const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/Play/${joinData.quizId}/${joinData.participantName}/${joinData.email}`, {
-                method: 'GET', headers: { 'ngrok-skip-browser-warning': '69420', 'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY },
+                method: 'GET',
+                headers: { 'ngrok-skip-browser-warning': '69420', 'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY },
             });
             if (!response.ok) throw new Error(`ACCESS DENIED: Quiz inactive.`);
             const data = await response.json();
             if (!data.questions || data.questions.length === 0) { toast.error("ERROR: THIS QUIZ HAS NO QUESTIONS"); setIsLoading(false); return; }
             if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => { });
-            if (data.quiz?.timePerQ !== undefined) {
-                const convertedSeconds = parseInt(data.quiz.timePerQ) * 60;
-                setSecondsPerQuestion(convertedSeconds); setTimeLeft(convertedSeconds);
-            }
             if (data.quiz?.showInstantScore !== undefined) setShowInstantScore(Boolean(data.quiz.showInstantScore));
             try {
                 const minutes = parseInt(data.quiz?.timePerStudent || 0);
                 if (minutes > 0) {
-                    const accessKey = `quiz_access_${joinData.quizId}_${fingerprint}`;
                     const expires = Date.now() + minutes * 60 * 1000;
-                    localStorage.setItem(accessKey, JSON.stringify({ expires }));
                     setAccessExpires(expires);
                 }
             } catch (e) { console.error('access window set failed', e); }
@@ -383,9 +337,8 @@ const PlayQuizContent = () => {
             });
             console.log("Final Submission Data:", finalSubmission);
             if (response.ok) {
-                const fingerprint = getDeviceFingerprint();
-                localStorage.setItem(`quiz_lock_${joinData.quizId}_${fingerprint}`, "SUBMITTED");
-                setScore(currentScore); setIsSubmitted(true);
+                setScore(currentScore);
+                setIsSubmitted(true);
                 toast.success("Quiz Submitted Successfully!");
                 if (document.exitFullscreen) document.exitFullscreen().catch(() => { });
                 window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -415,10 +368,22 @@ const PlayQuizContent = () => {
                                 <div><h2>RULES OF ENGAGEMENT</h2><p>STRICT ENFORCEMENT ACTIVE</p></div>
                             </Header>
                             <RulesList>
-                                <RuleItem><div className="rule-header"><Zap size={14} /> Anti-Cheat</div><div className="rule-desc">Tab switching or window resizing triggers immediate disqualification.</div></RuleItem>
-                                <RuleItem><div className="rule-header"><EyeOff size={14} /> Surveillance</div><div className="rule-desc">Active monitoring of cursor movements and focus state is enabled.</div></RuleItem>
-                                <RuleItem><div className="rule-header"><MonitorSmartphone size={14} /> Display</div><div className="rule-desc">System forces Fullscreen Mode. Exiting will terminate the arena.</div></RuleItem>
-                                <RuleItem><div className="rule-header"><Timer size={14} /> Timing</div><div className="rule-desc">Fixed duration per section. No manual submission required for time-out.</div></RuleItem>
+                                <RuleItem>
+                                    <div className="rule-header"><Zap size={14} /> Anti-Cheat</div>
+                                    <div className="rule-desc">Tab switching or window resizing triggers immediate disqualification.</div>
+                                </RuleItem>
+                                <RuleItem>
+                                    <div className="rule-header"><EyeOff size={14} /> Surveillance</div>
+                                    <div className="rule-desc">Active monitoring of cursor movements and focus state is enabled.</div>
+                                </RuleItem>
+                                <RuleItem>
+                                    <div className="rule-header"><MonitorSmartphone size={14} /> Display</div>
+                                    <div className="rule-desc">System forces Fullscreen Mode. Exiting will terminate the arena.</div>
+                                </RuleItem>
+                                <RuleItem>
+                                    <div className="rule-header"><Timer size={14} /> Timing</div>
+                                    <div className="rule-desc">Fixed duration per section. No manual submission required for time-out.</div>
+                                </RuleItem>
                                 <RuleItem>
                                     <div className="rule-header"><MonitorSmartphone size={14} /> Phone Calls</div>
                                     <div className="rule-desc">Keep your phone on silent. Receiving or making calls during the exam is strictly prohibited.</div>
@@ -436,6 +401,7 @@ const PlayQuizContent = () => {
         );
     }
 
+    // ---- MAIN QUIZ / LOGIN ----
     return (
         <ThemeProvider theme={theme}>
             <PageContainer $isBlocked={screenBlocked}>
@@ -469,14 +435,16 @@ const PlayQuizContent = () => {
                             <FormGrid>
                                 <InputGroup>
                                     <label>PARTICIPANT NAME <RequiredStar>*</RequiredStar></label>
-                                    <div className="input-wrapper"><User size={16} className="input-icon" />
+                                    <div className="input-wrapper">
+                                        <User size={16} className="input-icon" />
                                         <input type="text" placeholder="Enter full name..." value={joinData.participantName} onChange={(e) => setJoinData({ ...joinData, participantName: e.target.value })} />
                                     </div>
                                 </InputGroup>
                                 <InputGroup>
                                     <label>ENTER EMAIL <RequiredStar>*</RequiredStar></label>
-                                    <div className="input-wrapper"><User size={16} className="input-icon" />
-                                        <input type="email" placeholder="example@email.com" value={joinData.email} required onChange={(e) => setJoinData({ ...joinData, email: e.target.value })} pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,4}$" />
+                                    <div className="input-wrapper">
+                                        <User size={16} className="input-icon" />
+                                        <input type="email" placeholder="example@email.com" value={joinData.email} required onChange={(e) => setJoinData({ ...joinData, email: e.target.value })} />
                                     </div>
                                     {joinData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(joinData.email) && (
                                         <small style={{ color: '#ff4d4d', fontSize: '10px', marginTop: '5px' }}>Please enter a valid email format.</small>
@@ -484,13 +452,15 @@ const PlayQuizContent = () => {
                                 </InputGroup>
                                 <InputGroup>
                                     <label>QUIZ ID <RequiredStar>*</RequiredStar></label>
-                                    <div className="input-wrapper"><Hash size={16} className="input-icon" />
+                                    <div className="input-wrapper">
+                                        <Hash size={16} className="input-icon" />
                                         <input type="number" placeholder="000000" value={joinData.quizId} onChange={(e) => setJoinData({ ...joinData, quizId: e.target.value })} />
                                     </div>
                                 </InputGroup>
                                 <InputGroup>
                                     <label>CLASS <RequiredStar>*</RequiredStar></label>
-                                    <div className="input-wrapper"><GraduationCap size={16} className="input-icon" />
+                                    <div className="input-wrapper">
+                                        <GraduationCap size={16} className="input-icon" />
                                         <SelectField value={joinData.studentClass} $hasValue={!!joinData.studentClass} onChange={(e) => setJoinData({ ...joinData, studentClass: e.target.value })}>
                                             <option value="" disabled>Select your class...</option>
                                             {CLASS_OPTIONS.map((cls) => <option key={cls} value={cls}>{cls}</option>)}
@@ -499,7 +469,8 @@ const PlayQuizContent = () => {
                                 </InputGroup>
                                 <InputGroup>
                                     <label>DIVISION <RequiredStar>*</RequiredStar></label>
-                                    <div className="input-wrapper"><Layers size={16} className="input-icon" />
+                                    <div className="input-wrapper">
+                                        <Layers size={16} className="input-icon" />
                                         <SelectField value={joinData.division} $hasValue={!!joinData.division} onChange={(e) => setJoinData({ ...joinData, division: e.target.value })}>
                                             <option value="" disabled>Select division...</option>
                                             {DIVISION_OPTIONS.map((div) => <option key={div} value={div}>Division {div}</option>)}
@@ -508,12 +479,13 @@ const PlayQuizContent = () => {
                                 </InputGroup>
                                 <InputGroup>
                                     <label>ROLL NUMBER <RequiredStar>*</RequiredStar></label>
-                                    <div className="input-wrapper"><BookOpen size={16} className="input-icon" />
+                                    <div className="input-wrapper">
+                                        <BookOpen size={16} className="input-icon" />
                                         <input type="number" placeholder="Enter roll number..." value={joinData.rollNumber} onChange={(e) => setJoinData({ ...joinData, rollNumber: e.target.value })} />
                                     </div>
                                 </InputGroup>
                                 <EntryButton onClick={handleJoinQuiz} disabled={isLoading}>
-                                    {isLoading ? <Loader2 className="spinner" /> : "ENTER ARENA"}
+                                    {isLoading ? <><Loader2 className="spinner" size={18} /> CONNECTING...</> : "ENTER ARENA"}
                                 </EntryButton>
                             </FormGrid>
                         </ZolviEntryCard>
@@ -531,45 +503,35 @@ const PlayQuizContent = () => {
                                             : `PAGE ${currentPage + 1} / ${totalPages} · Q${pageStart + 1}–${Math.min(pageEnd, quizData.questions.length)} of ${quizData.questions.length}`}
                                     </span>
                                 </div>
-
                             </div>
-                            <h2 className="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full border-b border-white/10 pb-4 mb-6">
-                                {/* --- COMPONENT 1: Title Section --- */}
-                                <div className="flex-1 min-w-0">
-                                    <span className="text-lg md:text-xl font-bold tracking-tight uppercase truncate block text-white/90">
-                                        {isSubmitted ? "POST-SESSION ANALYSIS" : quizData.quiz.quizTitle}
-                                    </span>
-                                </div>
 
-                                {/* --- COMPONENT 2: Meta/Timer Section --- */}
-                                <div className="flex items-center gap-2">
+                            <h2>
+                                <span className="title-text">
+                                    {isSubmitted ? "POST-SESSION ANALYSIS" : quizData.quiz.quizTitle}
+                                </span>
+                                <div className="meta-right">
                                     {!isSubmitted && accessExpires && Date.now() < accessExpires && (() => {
                                         const remaining = accessExpires - now;
                                         const hrs = Math.floor(remaining / (1000 * 60 * 60));
                                         const mins = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
                                         const secs = Math.floor((remaining % (1000 * 60)) / 1000);
                                         const pad = n => String(n).padStart(2, '0');
-
                                         return (
-                                            <div
-                                                className="flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded-full text-xs md:text-sm font-mono whitespace-nowrap"
-                                                title="Access window"
-                                            >
-                                                <Timer size={14} className="text-white/40" />
-                                                <span className={remaining < 60000 ? "text-red-500 animate-pulse" : "text-white/80"}>
-                                                    {pad(hrs)}:{pad(mins)}:{pad(secs)}
-                                                </span>
+                                            <div className="status-pill timer" title="Access window">
+                                                <Timer size={12} /> {pad(hrs)}:{pad(mins)}:{pad(secs)}
                                             </div>
                                         );
                                     })()}
                                 </div>
                             </h2>
 
-                            {/* Progress dots bar */}
+                            {/* Section dots */}
                             {!isSubmitted && totalPages > 1 && (
                                 <PageDotsRow>
                                     {Array.from({ length: totalPages }, (_, i) => {
-                                        const pageAnswered = quizData.questions.slice(i * QUESTIONS_PER_PAGE, (i + 1) * QUESTIONS_PER_PAGE).filter((_, qi) => userAnswers[i * QUESTIONS_PER_PAGE + qi]).length;
+                                        const pageAnswered = quizData.questions
+                                            .slice(i * QUESTIONS_PER_PAGE, (i + 1) * QUESTIONS_PER_PAGE)
+                                            .filter((_, qi) => userAnswers[i * QUESTIONS_PER_PAGE + qi]).length;
                                         const pageTotal = Math.min(QUESTIONS_PER_PAGE, quizData.questions.length - i * QUESTIONS_PER_PAGE);
                                         return (
                                             <PageDot
@@ -586,8 +548,6 @@ const PlayQuizContent = () => {
                                 </PageDotsRow>
                             )}
                         </QuizHeader>
-
-
 
                         {/* ANSWERED PROGRESS BAR */}
                         {!isSubmitted && (
@@ -615,10 +575,8 @@ const PlayQuizContent = () => {
                                 </ZolviEntryCard>
                             ) : (
                                 <>
-                                    {/* RENDER CURRENT PAGE QUESTIONS (or all if submitted) */}
                                     {(isSubmitted ? quizData.questions : currentPageQuestions).map((q, localIdx) => {
                                         const globalIdx = isSubmitted ? localIdx : pageStart + localIdx;
-                                        const isSelected = userAnswers[globalIdx];
                                         const correctOpt = q.correctOpt.startsWith('U2F') || q.correctOpt.includes('=') ? decrypt(q.correctOpt) : q.correctOpt;
                                         const isHighlighted = highlightedQ === globalIdx;
 
@@ -789,6 +747,7 @@ const EntryButton = styled.button`
     background: ${({ theme }) => theme.btnBg}; color: ${({ theme }) => theme.btnText};
     border: none; padding: 20px; font-weight: 900; font-size: 13px; letter-spacing: 2px;
     cursor: pointer; transition: 0.3s; margin-top: 10px;
+    display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
     &:hover:not(:disabled) { background: ${({ theme }) => theme.btnBgHover}; transform: translateY(-2px); }
     &:disabled { opacity: 0.5; cursor: not-allowed; }
     .spinner { animation: ${spin} 1s linear infinite; }
@@ -798,7 +757,7 @@ const QuizWrapper = styled.div`width: 100%; max-width: 860px; animation: ${fadeI
 
 const QuizHeader = styled.div`
     position: sticky; top: 0; z-index: 100;
-    background: ${({ theme }) => theme.bg}; padding: 16px 0 16px;
+    background: ${({ theme }) => theme.bg}; padding: 16px 0;
     margin-bottom: 20px; border-bottom: 1px solid ${({ theme }) => theme.border};
     transition: background 0.3s ease;
     margin-left: -20px; margin-right: -20px; padding-left: 20px; padding-right: 20px;
@@ -807,10 +766,27 @@ const QuizHeader = styled.div`
     .top-meta {
         display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 12px;
         .meta-left .q-count { font-size: 11px; font-weight: 800; color: ${({ theme }) => theme.textDim}; letter-spacing: 1.5px; text-transform: uppercase; }
-        .meta-right { display: flex; align-items: center; gap: 8px; }
-        .status-pill { display: flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; transition: all 0.3s ease; &.timer { border: 2px solid ${({ theme }) => theme.text}; color: ${({ theme }) => theme.text}; background: transparent; } }
     }
-    h2 { font-size: 1.3rem; font-weight: 900; margin: 0 0 10px; line-height: 1.3; text-transform: uppercase; letter-spacing: 0.5px; color: ${({ theme }) => theme.text}; }
+
+    h2 {
+        font-size: 1.3rem; font-weight: 900; margin: 0 0 10px; line-height: 1.3;
+        text-transform: uppercase; letter-spacing: 0.5px; color: ${({ theme }) => theme.text};
+        display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+        .title-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .meta-right {
+            display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+            .status-pill {
+                display: flex; align-items: center; gap: 6px; padding: 6px 12px;
+                border-radius: 20px; font-size: 12px; font-weight: 700; white-space: nowrap;
+                &.timer { border: 2px solid ${({ theme }) => theme.text}; color: ${({ theme }) => theme.text}; background: transparent; }
+            }
+        }
+        @media (max-width: 480px) {
+            font-size: 1rem; flex-direction: column; align-items: flex-start;
+            .title-text { white-space: normal; }
+            .meta-right { width: 100%; }
+        }
+    }
 `;
 
 const PageDotsRow = styled.div`
@@ -831,13 +807,6 @@ const AnsweredBar = styled.div`
     .bar-label { display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; color: ${({ theme }) => theme.textDim}; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
     .bar-track { width: 100%; height: 4px; background: ${({ theme }) => theme.border}; border-radius: 2px; overflow: hidden; }
     .bar-fill { height: 100%; background: #4ade80; transition: width 0.5s ease; border-radius: 2px; }
-`;
-
-const ProgressBarContainer = styled.div`
-    width: 100%; height: 6px; background: ${({ theme }) => theme.border}; margin-bottom: 16px; border-radius: 3px; overflow: hidden;
-`;
-const ProgressFill = styled.div`
-    height: 100%; width: ${props => props.progress}%; background: ${({ theme }) => theme.btnBg}; transition: width 1s linear;
 `;
 
 const ContentArea = styled.div`margin-bottom: 40px; animation: ${fadeIn} 0.4s ease-out;`;
