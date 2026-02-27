@@ -284,7 +284,7 @@ const PlayQuizContent = () => {
                 method: 'GET',
                 headers: { 'ngrok-skip-browser-warning': '69420', 'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY },
             });
-            if (!response.ok) throw new Error(`QUIZ JOIN FAILED: ${response.message}`);
+            if (!response.ok) throw new Error(`Quiz is Inactive or Already Attempted  ${response.status}`);
             const data = await response.json();
             if (!data.questions || data.questions.length === 0) { toast.error("ERROR: THIS QUIZ HAS NO QUESTIONS"); setIsLoading(false); return; }
             if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => { });
@@ -505,7 +505,7 @@ const PlayQuizContent = () => {
                                 </div>
                             </div>
 
-                            <h2>
+                            <h2 className='flex flex-col gap-2'>
                                 <span className="title-text">
                                     {isSubmitted ? "POST-SESSION ANALYSIS" : quizData.quiz.quizTitle}
                                 </span>
