@@ -173,26 +173,47 @@ const PlayQuizContent = () => {
     // Security layer
     useEffect(() => {
         if (!quizData || isSubmitted) return;
+
         const handleSecurityAlert = () => {
             setScreenBlocked(true);
             toast.error("SECURITY PROTOCOL: SCREEN BLOCKED", { id: 'security-toast' });
             setTimeout(() => window.location.reload(), 1500);
         };
         const handleSecurityClear = () => setScreenBlocked(false);
-        window.addEventListener('blur', handleSecurityAlert);
-        window.addEventListener('focus', handleSecurityClear);
-        document.addEventListener('mouseleave', handleSecurityAlert);
+
+        // Instead of auto-blocking on blur, show confirm dialog
+        const handleBlur = () => {
+            const confirmed = window.confirm("⚠️ QUIZ ALERT: Leaving this tab will terminate your session. Do you want to exit the quiz?");
+            if (confirmed) {
+                window.location.reload();
+            }
+            // If No — do nothing, user stays
+        };
+
+        const handleMouseLeave = (e) => {
+            // Only trigger when cursor leaves through the top (new tab / address bar)
+            if (e.clientY <= 0) {
+                const confirmed = window.confirm("⚠️ QUIZ ALERT: Your cursor left the exam window. Do you want to exit the quiz?");
+                if (confirmed) {
+                    window.location.reload();
+                }
+            }
+        };
+
+        window.addEventListener('blur', handleBlur);
+        document.addEventListener('mouseleave', handleMouseLeave);
         document.addEventListener('mouseenter', handleSecurityClear);
+
         const handleKeyDown = (e) => {
             if (e.key === 'PrintScreen' || e.key === 'Snapshot' || (e.ctrlKey && e.key === 'p') || (e.metaKey && e.shiftKey && (e.key === 's' || e.key === '4'))) {
                 e.preventDefault(); handleSecurityAlert();
             }
         };
         window.addEventListener('keydown', handleKeyDown);
+
         return () => {
-            window.removeEventListener('blur', handleSecurityAlert);
-            window.removeEventListener('focus', handleSecurityClear);
-            document.removeEventListener('mouseleave', handleSecurityAlert);
+            window.removeEventListener('blur', handleBlur);
+            document.removeEventListener('mouseleave', handleMouseLeave);
             document.removeEventListener('mouseenter', handleSecurityClear);
             window.removeEventListener('keydown', handleKeyDown);
         };
@@ -398,6 +419,14 @@ const PlayQuizContent = () => {
                                 <RuleItem><div className="rule-header"><EyeOff size={14} /> Surveillance</div><div className="rule-desc">Active monitoring of cursor movements and focus state is enabled.</div></RuleItem>
                                 <RuleItem><div className="rule-header"><MonitorSmartphone size={14} /> Display</div><div className="rule-desc">System forces Fullscreen Mode. Exiting will terminate the arena.</div></RuleItem>
                                 <RuleItem><div className="rule-header"><Timer size={14} /> Timing</div><div className="rule-desc">Fixed duration per section. No manual submission required for time-out.</div></RuleItem>
+                                <RuleItem>
+                                    <div className="rule-header"><MonitorSmartphone size={14} /> Phone Calls</div>
+                                    <div className="rule-desc">Keep your phone on silent. Receiving or making calls during the exam is strictly prohibited.</div>
+                                </RuleItem>
+                                <RuleItem>
+                                    <div className="rule-header"><ShieldAlert size={14} /> Integrity</div>
+                                    <div className="rule-desc">Any form of assistance, discussion, or resource lookup during the exam is considered academic dishonesty and will result in disqualification.</div>
+                                </RuleItem>
                             </RulesList>
                             <EntryButton onClick={() => setHasAcceptedRules(true)} style={{ width: '100%' }}>INITIALIZE ARENA SESSION</EntryButton>
                         </ZolviEntryCard>
