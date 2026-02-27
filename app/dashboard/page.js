@@ -533,8 +533,18 @@ const LiveParticipantsModal = ({ quizId, onClose }) => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
+  // Helper to format the attendTime (e.g., "10:34 PM")
+  const formatTime = (dateString) => {
+    if (!dateString) return "--:--";
+    const date = new Date(dateString);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
   const filteredParticipants = useMemo(() => {
-    return participants.filter(p => (p.name || "").toLowerCase().includes(searchTerm.toLowerCase()));
+    return participants.filter(p => 
+      (p.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.email || "").toLowerCase().includes(searchTerm.toLowerCase())
+    );
   }, [participants, searchTerm]);
 
   useEffect(() => {
@@ -542,45 +552,75 @@ const LiveParticipantsModal = ({ quizId, onClose }) => {
       try {
         const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/LiveParticipants/${quizId}`, {
           method: 'GET',
-          headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true', 'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY }
+          headers: { 
+            'Content-Type': 'application/json', 
+            'ngrok-skip-browser-warning': 'true', 
+            'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY 
+          }
         });
-        if (response.ok) { const data = await response.json(); setParticipants(data); }
-      } catch (err) { console.error("Failed to fetch live participants"); }
-      finally { setLoading(false); }
+        if (response.ok) { 
+          const data = await response.json(); 
+          setParticipants(data); 
+        }
+      } catch (err) { 
+        console.error("Failed to fetch live participants"); 
+      } finally { 
+        setLoading(false); 
+      }
     };
+
     fetchLive();
-    const interval = setInterval(fetchLive, 1000);
+    const interval = setInterval(fetchLive, 2000); // Polling every 2s is usually enough
     return () => clearInterval(interval);
   }, [quizId]);
 
   return (
     <ModalOverlay initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-      <ModalContent initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} style={{ maxWidth: '450px' }}>
+      <ModalContent initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} style={{ maxWidth: '550px' }}>
         <div className="modal-header">
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Radio size={20} className="spinner" style={{ animationDuration: '2s' }} /> LIVE PARTICIPANTS
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', letterSpacing: '1px' }}>
+            <Radio size={20} className="spinner" style={{ color: '#22c55e' }} /> 
+            LIVE SESSION <span style={{ fontSize: '0.7rem', opacity: 0.5 }}>({participants.length})</span>
           </h3>
           <button onClick={onClose}><X size={20} /></button>
         </div>
+
         {loading && participants.length === 0 ? (
           <div className="loading-center"><Loader2 className="spinner" /></div>
         ) : participants.length === 0 ? (
           <p className="no-data">NO ONE IS CURRENTLY TAKING THIS QUIZ.</p>
         ) : (
           <div>
-            <SearchBar value={searchTerm} onChange={setSearchTerm} onClear={() => setSearchTerm("")} />
-            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+            <SearchBar 
+              placeholder="SEARCH BY NAME OR EMAIL..."
+              value={searchTerm} 
+              onChange={setSearchTerm} 
+              onClear={() => setSearchTerm("")} 
+            />
+            <div style={{ maxHeight: '400px', overflowY: 'auto', marginTop: '15px' }}>
               <ResultTable>
-                <thead><tr><th>#</th><th>STUDENT NAME</th><th>STATUS</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>NAME</th>
+                    <th>EMAIL</th>
+                    <th>JOINED AT</th>
+                    <th>STATUS</th>
+                  </tr>
+                </thead>
                 <tbody>
                   {filteredParticipants.map((p, i) => (
-                    <tr key={i}>
+                    <tr key={p.email || i}>
                       <td>{i + 1}</td>
-                      <td style={{ fontWeight: '700' }}>{p.name}</td>
+                      <td style={{ fontWeight: '700', textTransform: 'uppercase' }}>{p.name}</td>
+                      <td style={{ fontSize: '0.8rem', opacity: 0.8, color: '#aaa' }}>{p.email}</td>
+                      <td style={{ fontSize: '0.75rem', fontWeight: '500' }}>
+                        {formatTime(p.attendTime)}
+                      </td>
                       <td>
-                        <span style={{ color: 'white', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '700' }}>
-                          <div style={{ width: '8px', height: '8px', backgroundColor: '#22c55e', borderRadius: '50%' }} />
-                          ONLINE
+                        <span style={{ color: '#22c55e', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '800' }}>
+                          <div style={{ width: '6px', height: '6px', backgroundColor: '#22c55e', borderRadius: '50%', boxShadow: '0 0 8px #22c55e' }} />
+                          LIVE
                         </span>
                       </td>
                     </tr>

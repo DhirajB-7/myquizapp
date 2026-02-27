@@ -533,19 +533,16 @@ const PlayQuizContent = () => {
                                 </div>
 
                             </div>
-                            <h2 className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 w-full border-b border-white/10 pb-4 mb-6">
-                                {/* Title Section */}
-                                <span className="text-lg md:text-xl font-bold tracking-tight uppercase truncate">
-                                    {isSubmitted ? "POST-SESSION ANALYSIS" : quizData.quiz.quizTitle}
-                                </span>
+                            <h2 className="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full border-b border-white/10 pb-4 mb-6">
+                                {/* --- COMPONENT 1: Title Section --- */}
+                                <div className="flex-1 min-w-0">
+                                    <span className="text-lg md:text-xl font-bold tracking-tight uppercase truncate block text-white/90">
+                                        {isSubmitted ? "POST-SESSION ANALYSIS" : quizData.quiz.quizTitle}
+                                    </span>
+                                </div>
 
-                                {/* Timers Container */}
-                                <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-                                    {!isSubmitted && quizData.quiz?.timer && (
-                                        <div className="status-pill timer"><Timer size={14} />{timeLeft}s</div>
-                                    )}
-
-                                    {/* Session/Access Timer */}
+                                {/* --- COMPONENT 2: Meta/Timer Section --- */}
+                                <div className="flex items-center gap-2">
                                     {!isSubmitted && accessExpires && Date.now() < accessExpires && (() => {
                                         const remaining = accessExpires - now;
                                         const hrs = Math.floor(remaining / (1000 * 60 * 60));
@@ -554,9 +551,14 @@ const PlayQuizContent = () => {
                                         const pad = n => String(n).padStart(2, '0');
 
                                         return (
-                                            <div className="status-pill timer flex items-center gap-1.5 px-3 py-1 bg-white/5 border border-white/10 rounded-full text-xs md:text-sm font-mono whitespace-nowrap" title="Access window">
-                                                <Timer size={12} className="text-white/60" />
-                                                <span>{pad(hrs)}:{pad(mins)}:{pad(secs)}</span>
+                                            <div
+                                                className="flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10 rounded-full text-xs md:text-sm font-mono whitespace-nowrap"
+                                                title="Access window"
+                                            >
+                                                <Timer size={14} className="text-white/40" />
+                                                <span className={remaining < 60000 ? "text-red-500 animate-pulse" : "text-white/80"}>
+                                                    {pad(hrs)}:{pad(mins)}:{pad(secs)}
+                                                </span>
                                             </div>
                                         );
                                     })()}
