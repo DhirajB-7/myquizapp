@@ -284,7 +284,7 @@ const PlayQuizContent = () => {
                 method: 'GET',
                 headers: { 'ngrok-skip-browser-warning': '69420', 'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY },
             });
-            if (!response.ok) throw new Error(`QUIZ JOIN FAILED: ${response.statusText}`);
+            if (!response.ok) throw new Error(`QUIZ JOIN FAILED: ${response.message}`);
             const data = await response.json();
             if (!data.questions || data.questions.length === 0) { toast.error("ERROR: THIS QUIZ HAS NO QUESTIONS"); setIsLoading(false); return; }
             if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => { });
