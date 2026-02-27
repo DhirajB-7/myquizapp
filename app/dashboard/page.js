@@ -631,7 +631,7 @@ return (
                       <td>{i + 1}</td>
                       <td style={{ fontWeight: '700', textTransform: 'uppercase' }}>{p.name}</td>
                       <td style={{ fontSize: '0.8rem', opacity: 0.6, fontStyle: 'italic' }}>{p.email}</td>
-                      <td style={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}>{formatTime(p.attendTime)}</td>
+                      <td style={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}>{p.attendTime}</td>
                       <td>
                         <span style={{ color: '#22c55e', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '800' }}>
                           <div style={{ width: '6px', height: '6px', backgroundColor: '#22c55e', borderRadius: '50%', boxShadow: '0 0 8px #22c55e' }} />
