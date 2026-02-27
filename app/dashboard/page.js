@@ -574,37 +574,54 @@ const LiveParticipantsModal = ({ quizId, onClose }) => {
     return () => clearInterval(interval);
   }, [quizId]);
 
-  return (
+return (
     <ModalOverlay initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-      <ModalContent initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} style={{ maxWidth: '550px' }}>
-        <div className="modal-header">
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', letterSpacing: '1px' }}>
-            <Radio size={20} className="spinner" style={{ color: '#22c55e' }} /> 
-            LIVE SESSION <span style={{ fontSize: '0.7rem', opacity: 0.5 }}>({participants.length})</span>
-          </h3>
-          <button onClick={onClose}><X size={20} /></button>
+      <ModalContent initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} style={{ maxWidth: '650px' }}>
+        <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #222', paddingBottom: '15px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+              <Radio size={18} className="spinner" style={{ color: '#22c55e' }} /> 
+              LIVE PARTICIPANTS
+            </h3>
+            {/* --- TOTAL COUNT BADGE --- */}
+            <div style={{ 
+              backgroundColor: '#22c55e', 
+              color: '#000', 
+              padding: '2px 8px', 
+              borderRadius: '4px', 
+              fontSize: '0.75rem', 
+              fontWeight: '900',
+              boxShadow: '0 0 10px rgba(34, 197, 94, 0.3)'
+            }}>
+              {participants.length} TOTAL
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer' }}><X size={20} /></button>
         </div>
 
         {loading && participants.length === 0 ? (
           <div className="loading-center"><Loader2 className="spinner" /></div>
         ) : participants.length === 0 ? (
-          <p className="no-data">NO ONE IS CURRENTLY TAKING THIS QUIZ.</p>
+          <p className="no-data" style={{ textAlign: 'center', padding: '40px 0', opacity: 0.5 }}>NO ONE IS CURRENTLY TAKING THIS QUIZ.</p>
         ) : (
           <div>
-            <SearchBar 
-              placeholder="SEARCH BY NAME OR EMAIL..."
-              value={searchTerm} 
-              onChange={setSearchTerm} 
-              onClear={() => setSearchTerm("")} 
-            />
+            <div style={{ marginTop: '20px' }}>
+                <SearchBar 
+                placeholder="SEARCH BY NAME OR EMAIL..."
+                value={searchTerm} 
+                onChange={setSearchTerm} 
+                onClear={() => setSearchTerm("")} 
+                />
+            </div>
+            
             <div style={{ maxHeight: '400px', overflowY: 'auto', marginTop: '15px' }}>
               <ResultTable>
                 <thead>
                   <tr>
                     <th>#</th>
                     <th>NAME</th>
-                    <th>EMAIL</th>
-                    <th>JOINED AT</th>
+                    <th>EMAIL ADDRESS</th>
+                    <th>JOINED</th>
                     <th>STATUS</th>
                   </tr>
                 </thead>
@@ -613,14 +630,12 @@ const LiveParticipantsModal = ({ quizId, onClose }) => {
                     <tr key={p.email || i}>
                       <td>{i + 1}</td>
                       <td style={{ fontWeight: '700', textTransform: 'uppercase' }}>{p.name}</td>
-                      <td style={{ fontSize: '0.8rem', opacity: 0.8, color: '#aaa' }}>{p.email}</td>
-                      <td style={{ fontSize: '0.75rem', fontWeight: '500' }}>
-                        {formatTime(p.attendTime)}
-                      </td>
+                      <td style={{ fontSize: '0.8rem', opacity: 0.6, fontStyle: 'italic' }}>{p.email}</td>
+                      <td style={{ fontSize: '0.75rem', whiteSpace: 'nowrap' }}>{formatTime(p.attendTime)}</td>
                       <td>
                         <span style={{ color: '#22c55e', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '800' }}>
                           <div style={{ width: '6px', height: '6px', backgroundColor: '#22c55e', borderRadius: '50%', boxShadow: '0 0 8px #22c55e' }} />
-                          LIVE
+                          ONLINE
                         </span>
                       </td>
                     </tr>
