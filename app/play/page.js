@@ -175,10 +175,11 @@ const PlayQuizContent = () => {
         };
 
         const handleMouseLeave = (e) => {
-            if (e.clientY <= 0) {
-                const confirmed = window.confirm("⚠️ QUIZ ALERT: Your cursor left the exam window. Do you want to exit the quiz?");
-                if (confirmed) window.location.reload();
+            const confirmed = window.confirm("⚠️ QUIZ ALERT: Your cursor left the exam window. Do you want to exit the quiz?");
+            if (confirmed) {
+                window.location.reload();
             }
+            // If Cancel — do nothing, quiz continues
         };
 
         window.addEventListener('blur', handleBlur);
