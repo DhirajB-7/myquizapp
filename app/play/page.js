@@ -122,6 +122,7 @@ const PlayQuizContent = () => {
     const searchParams = useSearchParams();
     const router = useRouter();
     const contentRef = useRef(null);
+    const isConfirmingRef = useRef(false);
 
     const [isDark, setIsDark] = useState(false);
     const theme = isDark ? darkTheme : lightTheme;
@@ -169,20 +170,39 @@ const PlayQuizContent = () => {
         };
         const handleSecurityClear = () => setScreenBlocked(false);
 
-        const handleBlur = () => {
-            const confirmed = window.confirm("⚠️ QUIZ ALERT: Leaving this tab will terminate your session. Do you want to exit the quiz?");
-            if (confirmed) window.location.reload();
-        };
+        // const handleBlur = () => {
+        //     const confirmed = window.confirm("⚠️ QUIZ ALERT: Leaving this tab will terminate your session. Do you want to exit the quiz?");
+        //     if (confirmed) window.location.reload();
+        // };
 
         const handleMouseLeave = (e) => {
-            const confirmed = window.confirm("⚠️ QUIZ ALERT: Your cursor left the exam window. Do you want to exit the quiz?");
-            if (confirmed) {
-                window.location.reload();
-            }
-            // If Cancel — do nothing, quiz continues
-        };
+            // Check the Ref to prevent multiple popups
+            if (isConfirmingRef.current) return;
 
-        window.addEventListener('blur', handleBlur);
+            // Only trigger if the mouse actually leaves the window (clientY <= 0)
+            // This prevents the popup from showing when clicking on browser UI/Scrollbars
+            if (e.clientY <= 0) {
+                isConfirmingRef.current = true;
+
+                const confirmed = window.confirm(
+                    "⚠️ SECURITY ALERT: Your cursor left the exam environment.\n\n" +
+                    "Click OK to EXIT and forfeit your attempt.\n" +
+                    "Click CANCEL to return to the quiz."
+                );
+
+                if (confirmed) {
+                    // Option A: Redirect to home (The true 'Exit' action)
+                    window.location.href = "/";
+
+                    // Option B: If you actually want to reload:
+                    // window.location.reload();
+                } else {
+                    // Reset the flag so they can be warned again if they leave again
+                    isConfirmingRef.current = false;
+                }
+            }
+        };
+       // window.addEventListener('blur', handleBlur);
         document.addEventListener('mouseleave', handleMouseLeave);
         document.addEventListener('mouseenter', handleSecurityClear);
 
@@ -208,8 +228,9 @@ const PlayQuizContent = () => {
             if (document.visibilityState === 'hidden') {
                 const nextWarning = warningCount + 1;
                 setWarningCount(nextWarning);
-                if (nextWarning === 1) toast.error("WARNING 1/2: TAB SWITCHING DETECTED!");
-                else if (nextWarning >= 2) { toast.error("FINAL WARNING: TERMINATING."); setTimeout(() => window.location.reload(), 1500); }
+                if (nextWarning === 1) toast.error("WARNING 1/3: TAB SWITCHING DETECTED!");
+                else if (nextWarning === 2) { toast.error("WARNING 2/3: TAB SWITCHING DETECTED!");}
+                else if (nextWarning >= 3) { toast.error("FINAL WARNING: TERMINATING."); setTimeout(() => window.location.reload(), 1500); }
             }
         };
         document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -275,6 +296,7 @@ const PlayQuizContent = () => {
     const handleJoinQuiz = async () => {
         if (!joinData.participantName || !joinData.quizId) { toast.error("CREDENTIALS REQUIRED"); return; }
         if (!joinData.email) { toast.error("PLEASE ENTER YOUR EMAIL"); return; }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(joinData.email)) { toast.error("PLEASE ENTER A VALID EMAIL ADDRESS"); return; }
         if (!joinData.studentClass) { toast.error("PLEASE SELECT YOUR CLASS"); return; }
         if (!joinData.division) { toast.error("PLEASE SELECT YOUR DIVISION"); return; }
         if (!joinData.rollNumber || joinData.rollNumber.toString().trim() === '') { toast.error("ROLL NUMBER IS REQUIRED"); return; }

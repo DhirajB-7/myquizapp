@@ -916,13 +916,7 @@ const Form = () => {
                                 <LogOut size={18} /> 
                                 {isLoggingOut ? "Logging out..." : "Sign Out"}
                             </button>
-                            <button 
-                                className="main-btn danger-btn" 
-                                onClick={() => setShowDeleteModal(true)}
-                            >
-                                <Trash2 size={18} /> 
-                                Delete Account
-                            </button>
+                           
                         </div>
                     </ProfileCard>
                 ) : (
@@ -1016,7 +1010,7 @@ const Form = () => {
                                         )}
                                     </button>
                                     <div style={{ marginTop: 12, display: 'flex', gap: 10, flexDirection: 'column' }}>
-                                      <button type="button" className="main-btn secondary-btn" onClick={() => handleOAuth('google')}><FaGoogle size={16} style={{marginRight: '8px'}} />Sign in with Google</button>
+
                                       <button type="button" className="main-btn secondary-btn" onClick={() => handleOAuth('github')}><FaGithub size={16} style={{marginRight: '8px'}} />Sign in with GitHub</button>
                                     </div>
                                     
@@ -1130,7 +1124,7 @@ const Form = () => {
                                                 )}
                                             </button>
                                               <div style={{ marginTop: 12, display: 'flex', gap: 10, flexDirection: 'column' }}>
-                                                <button type="button" className="main-btn secondary-btn" onClick={() => handleOAuth('google')}><FaGoogle size={16} style={{marginRight: '8px'}} />Sign up with Google</button>
+
                                                 <button type="button" className="main-btn secondary-btn" onClick={() => handleOAuth('github')}><FaGithub size={16} style={{marginRight: '8px'}} />Sign up with GitHub</button>
                                               </div>
                                         </form>
