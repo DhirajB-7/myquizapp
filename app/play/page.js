@@ -214,7 +214,7 @@ const PlayQuizContent = () => {
         window.addEventListener('keydown', handleKeyDown);
 
         return () => {
-            window.removeEventListener('blur', handleBlur);
+          //  window.removeEventListener('blur', handleBlur);
             document.removeEventListener('mouseleave', handleMouseLeave);
             document.removeEventListener('mouseenter', handleSecurityClear);
             window.removeEventListener('keydown', handleKeyDown);
