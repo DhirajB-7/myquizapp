@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, Suspense, useRef } from 'react';
 import styled, { keyframes, css, createGlobalStyle, ThemeProvider } from 'styled-components';
-import { Zap, Loader2, EyeOff, MonitorSmartphone, Trophy, RefreshCcw, User, Hash, CheckCircle2, AlertTriangle, XCircle, Timer, ChevronRight, ShieldAlert, GraduationCap, Layers, BookOpen, ChevronLeft, Sun, Moon } from 'lucide-react';
+import { Zap, Loader2, EyeOff, MonitorSmartphone, Trophy, RefreshCcw, User, Hash, CheckCircle2, AlertTriangle, XCircle, Timer, ChevronRight, ShieldAlert, GraduationCap, Layers, BookOpen, ChevronLeft, Sun, Moon, Maximize } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { useSearchParams, useRouter } from 'next/navigation';
 import CryptoJS from 'crypto-js';
@@ -48,9 +48,6 @@ const GlobalSecurity = createGlobalStyle`
   @media print { body { display: none !important; } }
 `;
 
-const CLASS_OPTIONS = ["BSC CS TY", "BSC DS TY", "BSC CM TY", "BSC IT TY", "BSC NT TY", "BSC SD TY", "BSC SE TY", "BSC AIML TY", "BCA TY", "B.Voc PSSD TY"];
-const DIVISION_OPTIONS = ["A", "B", "C", "D", "E", "F"];
-
 // --- THEME TOGGLE ---
 const ThemeToggleBtn = styled.button`
     position: fixed; top: 16px; right: 16px; z-index: 10000;
@@ -62,6 +59,22 @@ const ThemeToggleBtn = styled.button`
     &:hover { transform: scale(1.12) rotate(20deg); border-color: ${({ theme }) => theme.text}; }
     @media (min-width: 768px) { top: 24px; right: 24px; width: 48px; height: 48px; }
 `;
+
+// --- FULLSCREEN GATE OVERLAY ---
+const FullscreenGate = ({ onEnter, theme }) => (
+    <FullscreenOverlay>
+        <FullscreenBox>
+            <FullscreenIcon><Maximize size={36} /></FullscreenIcon>
+            <FullscreenTitle>FULLSCREEN REQUIRED</FullscreenTitle>
+            <FullscreenDesc>
+                This exam must be taken in fullscreen mode. Click the button below to enter fullscreen and begin your session.
+            </FullscreenDesc>
+            <FullscreenBtn onClick={onEnter}>
+                <Maximize size={16} /> ENTER FULLSCREEN & CONTINUE
+            </FullscreenBtn>
+        </FullscreenBox>
+    </FullscreenOverlay>
+);
 
 // --- CONFIRMATION MODAL ---
 const ConfirmModal = ({ isOpen, onConfirm, onCancel, questions, userAnswers, onGoToQuestion }) => {
@@ -128,6 +141,8 @@ const PlayQuizContent = () => {
     const theme = isDark ? darkTheme : lightTheme;
 
     const [hasAcceptedRules, setHasAcceptedRules] = useState(false);
+    // Fullscreen gate: shown after rules accepted, before login form is shown
+    const [isFullscreen, setIsFullscreen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [quizData, setQuizData] = useState(null);
     const [userAnswers, setUserAnswers] = useState({});
@@ -143,9 +158,9 @@ const PlayQuizContent = () => {
     const [highlightedQ, setHighlightedQ] = useState(null);
     const questionRefs = useRef({});
 
+    // Removed: studentClass, division, rollNumber — sent as null to backend
     const [joinData, setJoinData] = useState({
         participantName: '', quizId: '', email: '',
-        studentClass: '', division: '', rollNumber: ''
     });
 
     // Derived pagination values
@@ -159,6 +174,29 @@ const PlayQuizContent = () => {
         if (qId) { setJoinData(prev => ({ ...prev, quizId: qId })); toast.success("ID Captured from URL: " + qId); }
     }, [searchParams]);
 
+    // Track fullscreen changes — if user exits fullscreen during quiz, show gate again
+    useEffect(() => {
+        const handleFsChange = () => {
+            const inFs = !!document.fullscreenElement;
+            setIsFullscreen(inFs);
+        };
+        document.addEventListener('fullscreenchange', handleFsChange);
+        return () => document.removeEventListener('fullscreenchange', handleFsChange);
+    }, []);
+
+    const enterFullscreen = () => {
+        if (document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen().then(() => {
+                setIsFullscreen(true);
+            }).catch(() => {
+                // Even if it fails (e.g. mobile), let them through
+                setIsFullscreen(true);
+            });
+        } else {
+            setIsFullscreen(true);
+        }
+    };
+
     // Security layer
     useEffect(() => {
         if (!quizData || isSubmitted) return;
@@ -170,39 +208,23 @@ const PlayQuizContent = () => {
         };
         const handleSecurityClear = () => setScreenBlocked(false);
 
-        // const handleBlur = () => {
-        //     const confirmed = window.confirm("⚠️ QUIZ ALERT: Leaving this tab will terminate your session. Do you want to exit the quiz?");
-        //     if (confirmed) window.location.reload();
-        // };
-
         const handleMouseLeave = (e) => {
-            // Check the Ref to prevent multiple popups
             if (isConfirmingRef.current) return;
-
-            // Only trigger if the mouse actually leaves the window (clientY <= 0)
-            // This prevents the popup from showing when clicking on browser UI/Scrollbars
             if (e.clientY <= 0) {
                 isConfirmingRef.current = true;
-
                 const confirmed = window.confirm(
                     "⚠️ SECURITY ALERT: Your cursor left the exam environment.\n\n" +
                     "Click OK to EXIT and forfeit your attempt.\n" +
                     "Click CANCEL to return to the quiz."
                 );
-
                 if (confirmed) {
-                    // Option A: Redirect to home (The true 'Exit' action)
                     window.location.href = "/";
-
-                    // Option B: If you actually want to reload:
-                    // window.location.reload();
                 } else {
-                    // Reset the flag so they can be warned again if they leave again
                     isConfirmingRef.current = false;
                 }
             }
         };
-       // window.addEventListener('blur', handleBlur);
+
         document.addEventListener('mouseleave', handleMouseLeave);
         document.addEventListener('mouseenter', handleSecurityClear);
 
@@ -214,7 +236,6 @@ const PlayQuizContent = () => {
         window.addEventListener('keydown', handleKeyDown);
 
         return () => {
-          //  window.removeEventListener('blur', handleBlur);
             document.removeEventListener('mouseleave', handleMouseLeave);
             document.removeEventListener('mouseenter', handleSecurityClear);
             window.removeEventListener('keydown', handleKeyDown);
@@ -229,7 +250,7 @@ const PlayQuizContent = () => {
                 const nextWarning = warningCount + 1;
                 setWarningCount(nextWarning);
                 if (nextWarning === 1) toast.error("WARNING 1/3: TAB SWITCHING DETECTED!");
-                else if (nextWarning === 2) { toast.error("WARNING 2/3: TAB SWITCHING DETECTED!");}
+                else if (nextWarning === 2) { toast.error("WARNING 2/3: TAB SWITCHING DETECTED!"); }
                 else if (nextWarning >= 3) { toast.error("FINAL WARNING: TERMINATING."); setTimeout(() => window.location.reload(), 1500); }
             }
         };
@@ -251,7 +272,6 @@ const PlayQuizContent = () => {
         }
     }, [now, accessExpires, isSubmitted]);
 
-    // Jump to a specific question global index
     const goToQuestion = (globalIdx) => {
         const targetPage = Math.floor(globalIdx / QUESTIONS_PER_PAGE);
         setCurrentPage(targetPage);
@@ -297,9 +317,6 @@ const PlayQuizContent = () => {
         if (!joinData.participantName || !joinData.quizId) { toast.error("CREDENTIALS REQUIRED"); return; }
         if (!joinData.email) { toast.error("PLEASE ENTER YOUR EMAIL"); return; }
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(joinData.email)) { toast.error("PLEASE ENTER A VALID EMAIL ADDRESS"); return; }
-        if (!joinData.studentClass) { toast.error("PLEASE SELECT YOUR CLASS"); return; }
-        if (!joinData.division) { toast.error("PLEASE SELECT YOUR DIVISION"); return; }
-        if (!joinData.rollNumber || joinData.rollNumber.toString().trim() === '') { toast.error("ROLL NUMBER IS REQUIRED"); return; }
 
         setIsLoading(true);
         try {
@@ -310,7 +327,6 @@ const PlayQuizContent = () => {
             if (!response.ok) throw new Error(`Quiz is Inactive or Already Attempted  ${response.status}`);
             const data = await response.json();
             if (!data.questions || data.questions.length === 0) { toast.error("ERROR: THIS QUIZ HAS NO QUESTIONS"); setIsLoading(false); return; }
-            if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => { });
             if (data.quiz?.showInstantScore !== undefined) setShowInstantScore(Boolean(data.quiz.showInstantScore));
             try {
                 const minutes = parseInt(data.quiz?.timePerStudent || 0);
@@ -324,12 +340,6 @@ const PlayQuizContent = () => {
         } catch (error) { toast.error(error.message); }
         finally { setIsLoading(false); }
     };
-
-    useEffect(() => {
-        const handleSecurityBreach = () => { if (!document.fullscreenElement && quizData) { } };
-        document.addEventListener('fullscreenchange', handleSecurityBreach);
-        return () => document.removeEventListener('fullscreenchange', handleSecurityBreach);
-    }, [quizData]);
 
     const handleSelectOption = (questionIdx, optionText) => {
         if (isSubmitted) return;
@@ -345,11 +355,15 @@ const PlayQuizContent = () => {
             const correctOpt = q.correctOpt.startsWith('U2F') || q.correctOpt.includes('=') ? decrypt(q.correctOpt) : q.correctOpt;
             if (userAnswers[idx] === q[correctOpt]) currentScore++;
         });
+
+        // class, division, rollNo sent as null
         const finalSubmission = {
-            quizId: parseInt(joinData.quizId), participantName: joinData.participantName,
-            score: currentScore.toString(), outOf: questions.length.toString(),
-            email: joinData.email, studentClass: joinData.studentClass,
-            division: joinData.division, rollNo: joinData.rollNumber.toString()
+            quizId: parseInt(joinData.quizId),
+            participantName: joinData.participantName,
+            score: currentScore.toString(),
+            outOf: questions.length.toString(),
+            email: joinData.email,
+           
         };
         setIsLoading(true);
         try {
@@ -424,6 +438,22 @@ const PlayQuizContent = () => {
         );
     }
 
+    // ---- FULLSCREEN GATE (after rules, before login) ----
+    if (!isFullscreen) {
+        return (
+            <ThemeProvider theme={theme}>
+                <PageContainer>
+                    <GlobalSecurity />
+                    <Toaster toastOptions={{ style: { background: theme.bgCard, color: theme.text, border: `1px solid ${theme.border}` } }} />
+                    <ThemeToggleBtn onClick={() => setIsDark(d => !d)} title="Toggle theme">
+                        {isDark ? <Sun size={20} /> : <Moon size={20} />}
+                    </ThemeToggleBtn>
+                    <FullscreenGate onEnter={enterFullscreen} theme={theme} />
+                </PageContainer>
+            </ThemeProvider>
+        );
+    }
+
     // ---- MAIN QUIZ / LOGIN ----
     return (
         <ThemeProvider theme={theme}>
@@ -447,7 +477,7 @@ const PlayQuizContent = () => {
                 )}
 
                 {!quizData ? (
-                    // ---- LOGIN FORM ----
+                    // ---- LOGIN FORM (only name, email, quiz ID) ----
                     <EntryWrapper style={{ maxWidth: '520px' }}>
                         <StatusTag><ShieldAlert size={12} /> ENCRYPTED SESSION</StatusTag>
                         <ZolviEntryCard>
@@ -478,33 +508,6 @@ const PlayQuizContent = () => {
                                     <div className="input-wrapper">
                                         <Hash size={16} className="input-icon" />
                                         <input type="number" placeholder="000000" value={joinData.quizId} onChange={(e) => setJoinData({ ...joinData, quizId: e.target.value })} />
-                                    </div>
-                                </InputGroup>
-                                <InputGroup>
-                                    <label>CLASS <RequiredStar>*</RequiredStar></label>
-                                    <div className="input-wrapper">
-                                        <GraduationCap size={16} className="input-icon" />
-                                        <SelectField value={joinData.studentClass} $hasValue={!!joinData.studentClass} onChange={(e) => setJoinData({ ...joinData, studentClass: e.target.value })}>
-                                            <option value="" disabled>Select your class...</option>
-                                            {CLASS_OPTIONS.map((cls) => <option key={cls} value={cls}>{cls}</option>)}
-                                        </SelectField>
-                                    </div>
-                                </InputGroup>
-                                <InputGroup>
-                                    <label>DIVISION <RequiredStar>*</RequiredStar></label>
-                                    <div className="input-wrapper">
-                                        <Layers size={16} className="input-icon" />
-                                        <SelectField value={joinData.division} $hasValue={!!joinData.division} onChange={(e) => setJoinData({ ...joinData, division: e.target.value })}>
-                                            <option value="" disabled>Select division...</option>
-                                            {DIVISION_OPTIONS.map((div) => <option key={div} value={div}>Division {div}</option>)}
-                                        </SelectField>
-                                    </div>
-                                </InputGroup>
-                                <InputGroup>
-                                    <label>ROLL NUMBER <RequiredStar>*</RequiredStar></label>
-                                    <div className="input-wrapper">
-                                        <BookOpen size={16} className="input-icon" />
-                                        <input type="number" placeholder="Enter roll number..." value={joinData.rollNumber} onChange={(e) => setJoinData({ ...joinData, rollNumber: e.target.value })} />
                                     </div>
                                 </InputGroup>
                                 <EntryButton onClick={handleJoinQuiz} disabled={isLoading}>
@@ -693,6 +696,7 @@ const spin = keyframes` from { transform: rotate(0deg); } to { transform: rotate
 const fadeIn = keyframes` from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } `;
 const modalFadeIn = keyframes` from { opacity: 0; transform: scale(0.92) translateY(12px); } to { opacity: 1; transform: scale(1) translateY(0); } `;
 const highlight = keyframes` 0%,100% { box-shadow: 0 0 0 0 transparent; } 50% { box-shadow: 0 0 0 4px #f59e0b; } `;
+const pulse = keyframes` 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } `;
 
 // --- Styled Components ---
 const PageContainer = styled.div`
@@ -703,6 +707,43 @@ const PageContainer = styled.div`
     transition: background 0.3s ease, color 0.3s ease, filter 0.2s ease;
     ${props => props.$isBlocked && css` filter: blur(40px) brightness(0.2); opacity: 0.5; pointer-events: none; `}
     @media (min-width: 768px) { padding: 60px 40px; }
+`;
+
+// --- FULLSCREEN GATE STYLES ---
+const FullscreenOverlay = styled.div`
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; min-height: 80vh; animation: ${fadeIn} 0.5s ease-out;
+`;
+
+const FullscreenBox = styled.div`
+    background: ${({ theme }) => theme.bgCard}; border: 1px solid ${({ theme }) => theme.border};
+    padding: 48px 40px; max-width: 460px; width: 100%; text-align: center;
+    border-radius: 4px;
+`;
+
+const FullscreenIcon = styled.div`
+    width: 72px; height: 72px; border: 2px solid ${({ theme }) => theme.text};
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 24px; animation: ${pulse} 2s ease-in-out infinite;
+    color: ${({ theme }) => theme.text};
+`;
+
+const FullscreenTitle = styled.h2`
+    font-size: 1.3rem; font-weight: 900; letter-spacing: 2px; text-transform: uppercase;
+    color: ${({ theme }) => theme.text}; margin: 0 0 16px;
+`;
+
+const FullscreenDesc = styled.p`
+    font-size: 13px; color: ${({ theme }) => theme.textDim}; line-height: 1.7;
+    margin: 0 0 32px;
+`;
+
+const FullscreenBtn = styled.button`
+    background: ${({ theme }) => theme.btnBg}; color: ${({ theme }) => theme.btnText};
+    border: none; padding: 18px 32px; font-weight: 900; font-size: 12px; letter-spacing: 2px;
+    cursor: pointer; transition: 0.3s; width: 100%; text-transform: uppercase;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    &:hover { background: ${({ theme }) => theme.btnBgHover}; transform: translateY(-2px); }
 `;
 
 const RulesList = styled.div`
@@ -752,18 +793,6 @@ const InputGroup = styled.div`
         .input-icon { position: absolute; left: 16px; color: ${({ theme }) => theme.textMuted}; z-index: 1; pointer-events: none; }
         input { width: 100%; background: ${({ theme }) => theme.bgInput}; border: 1px solid ${({ theme }) => theme.border}; padding: 16px 16px 16px 48px; color: ${({ theme }) => theme.text}; font-size: 14px; transition: all 0.3s ease; &:focus { outline: none; border-color: ${({ theme }) => theme.text}; } &::placeholder { color: ${({ theme }) => theme.textMuted}; } }
     }
-`;
-
-const SelectField = styled.select`
-    width: 100%; background: ${({ theme }) => theme.bgInput}; border: 1px solid ${({ theme }) => theme.border};
-    padding: 16px 16px 16px 48px; color: ${props => props.$hasValue ? props.theme.text : props.theme.textMuted};
-    font-size: 14px; font-family: 'Inter', system-ui, -apple-system, sans-serif; font-weight: 500;
-    transition: all 0.3s ease; cursor: pointer; appearance: none; -webkit-appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-    background-repeat: no-repeat; background-position: right 16px center;
-    &:focus { outline: none; border-color: ${({ theme }) => theme.text}; color: ${({ theme }) => theme.text}; }
-    option { background: ${({ theme }) => theme.bgCard}; color: ${({ theme }) => theme.text}; }
-    option:disabled { color: ${({ theme }) => theme.textMuted}; }
 `;
 
 const EntryButton = styled.button`

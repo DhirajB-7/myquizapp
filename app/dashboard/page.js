@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  BookOpen, Clock, AlertCircle, Plus, Loader2, Fingerprint, Eye,
+  BookOpen, Clock, AlertCircle, Plus, Loader2, Fingerprint, Eye, Users,
   HelpCircle, ChevronLeft, Edit3, Save, Trash2, Inbox, FileText, X, Trophy, Download,
   QrCode, Share2, Search, Radio, MoreVertical, Lock, Globe, AlertTriangle
 } from 'lucide-react';
@@ -57,10 +57,7 @@ const ResultModal = ({ quizId, onClose }) => {
 
   const filteredResults = useMemo(() => {
     return results.filter(r =>
-      (r.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (r.studentClass || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (r.division || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      String(r.rollNo || "").includes(searchTerm)
+      (r.name || "").toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [results, searchTerm]);
 
@@ -93,14 +90,13 @@ const ResultModal = ({ quizId, onClose }) => {
     const doc = new jsPDF({ orientation: 'landscape' });
     doc.setFontSize(16);
     doc.text(`Quiz Results - ID: ${quizId}`, 14, 15);
+    doc.setFontSize(11);
+    doc.text(`Total Students: ${results.length}`, 14, 22);
 
-    const tableColumn = ["#", "Student Name", "Class", "Division", "Roll No", "Score", "Total", "Percentage"];
+    const tableColumn = ["#", "Student Name", "Score", "Total", "Percentage"];
     const tableRows = results.map((res, idx) => [
       idx + 1,
       res.name || "-",
-      res.studentClass || "-",
-      res.division || "-",
-      res.rollNo != null ? res.rollNo : "-",
       res.score != null ? res.score : "-",
       res.outOf != null ? res.outOf : "-",
       res.outOf && res.score != null
@@ -111,7 +107,7 @@ const ResultModal = ({ quizId, onClose }) => {
     autoTable(doc, {
       head: [tableColumn],
       body: tableRows,
-      startY: 22,
+      startY: 28,
       theme: 'grid',
       headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold' },
       alternateRowStyles: { fillColor: [240, 240, 240] },
@@ -150,7 +146,7 @@ const ResultModal = ({ quizId, onClose }) => {
       <ModalContent
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        style={{ maxWidth: '900px', width: '95vw' }}
+        style={{ maxWidth: '700px', width: '95vw' }}
       >
         <div className="modal-header">
           <h3><Trophy size={20} /> STUDENT RESULTS</h3>
@@ -175,20 +171,42 @@ const ResultModal = ({ quizId, onClose }) => {
           <p className="no-data">NO RESULTS RECORDED YET.</p>
         ) : (
           <>
+            {/* Student Count Badge */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 14px',
+              marginBottom: '12px',
+              background: 'rgba(74, 222, 128, 0.08)',
+              border: '1px solid rgba(74, 222, 128, 0.3)',
+              borderRadius: '8px',
+              fontSize: '12px',
+              fontWeight: '800',
+              letterSpacing: '1px',
+              color: '#4ade80',
+            }}>
+              <Users size={15} />
+              {results.length} STUDENT{results.length !== 1 ? 'S' : ''} ATTEMPTED
+              {filteredResults.length !== results.length && (
+                <span style={{ marginLeft: 'auto', color: '#888', fontWeight: 600 }}>
+                  {filteredResults.length} shown
+                </span>
+              )}
+            </div>
+
             <SearchBar
               value={searchTerm}
               onChange={setSearchTerm}
               onClear={() => setSearchTerm("")}
             />
+
             <div style={{ overflowX: 'auto', maxHeight: '460px', overflowY: 'auto' }}>
               <ResultTable>
                 <thead>
                   <tr>
                     <th>#</th>
                     <th>NAME</th>
-                    <th>CLASS</th>
-                    <th>DIV</th>
-                    <th>ROLL NO</th>
                     <th>SCORE</th>
                     <th>TOTAL</th>
                     <th>%</th>
@@ -199,9 +217,6 @@ const ResultModal = ({ quizId, onClose }) => {
                     <tr key={i}>
                       <td>{i + 1}</td>
                       <td style={{ fontWeight: 700 }}>{res.name || "-"}</td>
-                      <td>{res.studentClass || "-"}</td>
-                      <td style={{ textAlign: 'center' }}>{res.division || "-"}</td>
-                      <td style={{ textAlign: 'center' }}>{res.rollNo != null ? res.rollNo : "-"}</td>
                       <td className="score-cell">{res.score != null ? res.score : "-"}</td>
                       <td>{res.outOf != null ? res.outOf : "-"}</td>
                       <td>
